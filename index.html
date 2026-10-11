@@ -49,12 +49,12 @@
 
     <div class="legend-item">
       <span class="legend-dot station-blue"></span>
-      Simulated monitoring station
+      Simulated sensor station
     </div>
 
     <div class="legend-note">
-      Soil colours indicate measured thickness, not landslide risk.
-      Sensor readings are randomly simulated, not real measurements.
+      Soil-thickness colours show recorded measurements, not landslide
+      risk. Sensor readings are simulated and are not real measurements.
     </div>
   </div>
 
@@ -67,9 +67,9 @@
   <script>
     "use strict";
 
-    // ----------------------------------------------------
-    // MAP INITIALIZATION
-    // ----------------------------------------------------
+    // ==================================================
+    // 1. MAP INITIALIZATION
+    // ==================================================
 
     const map = L.map("map").setView([20, 0], 2);
 
@@ -88,20 +88,11 @@
     const sensorStationLayer = L.layerGroup().addTo(map);
 
     const mapMessage = document.getElementById("mapMessage");
-
-    // Keep references so open popups can be refreshed.
     const sensorStations = [];
 
-    // ----------------------------------------------------
-    // SOIL THICKNESS COLOURS
-    // ----------------------------------------------------
-
-    function thicknessColor(value) {
-      if (value < 0.5) return "#23834b";
-      if (value < 1.0) return "#e6a23c";
-      if (value < 1.5) return "#e66b2e";
-      return "#c62828";
-    }
+    // ==================================================
+    // 2. HELPER FUNCTIONS
+    // ==================================================
 
     function escapeHTML(value) {
       return String(value).replace(/[&<>"']/g, char => ({
@@ -113,10 +104,25 @@
       })[char]);
     }
 
-    // ----------------------------------------------------
-    // RANDOM SENSOR DATA
-    // Demonstration only. Not real sensor measurements.
-    // ----------------------------------------------------
+    function formatTime(date) {
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+    }
+
+    function thicknessColor(value) {
+      if (value < 0.5) return "#23834b";
+      if (value < 1.0) return "#e6a23c";
+      if (value < 1.5) return "#e66b2e";
+      return "#c62828";
+    }
+
+    // ==================================================
+    // 3. SIMULATED SENSOR READINGS
+    // These values are for demonstration only.
+    // ==================================================
 
     function randomBetween(min, max, decimals = 1) {
       const value = min + Math.random() * (max - min);
@@ -133,17 +139,9 @@
       };
     }
 
-    function formatTime(date) {
-      return date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-      });
-    }
-
-    // ----------------------------------------------------
-    // SENSOR STATION ICON
-    // ----------------------------------------------------
+    // ==================================================
+    // 4. SENSOR MARKER ICON
+    // ==================================================
 
     function createSensorIcon() {
       return L.divIcon({
@@ -154,93 +152,106 @@
       });
     }
 
-    // ----------------------------------------------------
-    // SENSOR POPUP
-    // ----------------------------------------------------
+    // ==================================================
+    // 5. POPUP CONTENT
+    // Shows sensor readings AND recorded soil thickness.
+    // ==================================================
 
-   function sensorPopupHTML(station) {
-  const r = station.readings;
+    function sensorPopupHTML(station) {
+      const r = station.readings;
 
-  return `
-    <div class="sensor-popup">
-      <div class="popup-heading">
-        <strong>${escapeHTML(station.id)}</strong>
-        <span class="simulated-badge">SIMULATED</span>
-      </div>
+      const recordedThickness =
+        station.recordedSoilThickness == null
+          ? "Unavailable"
+          : station.recordedSoilThickness.toFixed(2) + " m";
 
-      <div class="popup-subtitle">
-        Monitoring station · Demo readings
-      </div>
+      return `
+        <div class="sensor-popup">
 
-      <div class="popup-reading">
-        <span class="reading-icon">🌧️</span>
-        <span class="reading-name">Rainfall rate</span>
-        <strong>${r.rainfall} mm/h</strong>
-      </div>
+          <div class="popup-heading">
+            <strong>${escapeHTML(station.id)}</strong>
+            <span class="simulated-badge">SIMULATED</span>
+          </div>
 
-      <div class="popup-reading">
-        <span class="reading-icon">💧</span>
-        <span class="reading-name">Soil moisture</span>
-        <strong>${r.soilMoisture}%</strong>
-      </div>
+          <div class="popup-subtitle">
+            Monitoring station · Demo readings
+          </div>
 
-      <div class="popup-reading">
-        <span class="reading-icon">📐</span>
-        <span class="reading-name">Tilt change</span>
-        <strong>${r.tilt.toFixed(3)}°</strong>
-      </div>
+          <div class="popup-reading">
+            <span class="reading-icon">🌧️</span>
+            <span class="reading-name">Rainfall rate</span>
+            <strong>${r.rainfall} mm/h</strong>
+          </div>
 
-      <div class="popup-reading">
-        <span class="reading-icon">〰️</span>
-        <span class="reading-name">Acoustic thickness estimate</span>
-        <strong>${r.soilThicknessEstimate.toFixed(2)} m</strong>
-      </div>
+          <div class="popup-reading">
+            <span class="reading-icon">💧</span>
+            <span class="reading-name">Soil moisture</span>
+            <strong>${r.soilMoisture}%</strong>
+          </div>
 
-      <div class="popup-reading">
-        <span class="reading-icon">🌊</span>
-        <span class="reading-name">Water index</span>
-        <strong>${r.waterIndex}%</strong>
-      </div>
+          <div class="popup-reading">
+            <span class="reading-icon">📐</span>
+            <span class="reading-name">Tilt change</span>
+            <strong>${r.tilt.toFixed(3)}°</strong>
+          </div>
 
-      <div class="popup-reading soil-record">
-        <span class="reading-icon">🌱</span>
-        <span class="reading-name">Recorded soil thickness</span>
-        <strong>${
-          station.recordedSoilThickness == null
-            ? "Unavailable"
-            : station.recordedSoilThickness.toFixed(2) + " m"
-        }</strong>
-      </div>
+          <div class="popup-reading">
+            <span class="reading-icon">〰️</span>
+            <span class="reading-name">Acoustic thickness estimate</span>
+            <strong>${r.soilThicknessEstimate.toFixed(2)} m</strong>
+          </div>
 
-      <div class="popup-footer">
-        <span class="live-dot"></span>
-        Random demo readings · Updates every 3 seconds
-      </div>
+          <div class="popup-reading">
+            <span class="reading-icon">🌊</span>
+            <span class="reading-name">Water index</span>
+            <strong>${r.waterIndex}%</strong>
+          </div>
 
-      <div class="popup-updated">
-        Last updated: ${formatTime(station.updatedAt)}
-      </div>
+          <div class="popup-reading soil-record">
+            <span class="reading-icon">🌱</span>
+            <span class="reading-name">Recorded soil thickness</span>
+            <strong>${recordedThickness}</strong>
+          </div>
 
-      <div class="popup-disclaimer">
-        Sensor readings are simulated. Recorded soil thickness comes
-        from the CSV dataset and does not update automatically.
-      </div>
-    </div>
-  `;
-}
+          <div class="popup-footer">
+            <span class="live-dot"></span>
+            Random demo readings · Updates every 3 seconds
+          </div>
 
-    // ----------------------------------------------------
-    // CREATE A SIMULATED STATION AT A DATASET LOCATION
-    // ----------------------------------------------------
+          <div class="popup-updated">
+            Last updated: ${formatTime(station.updatedAt)}
+          </div>
 
-    function addSensorStation(lat, lon, sampleNumber, recordedThickness) { {
+          <div class="popup-disclaimer">
+            Sensor values are simulated. Recorded soil thickness comes
+            from the CSV and does not change automatically. The acoustic
+            estimate and water index are placeholders, not validated
+            measurements.
+          </div>
+
+        </div>
+      `;
+    }
+
+    // ==================================================
+    // 6. CREATE A SENSOR STATION
+    // Recorded soil thickness is passed in from the CSV.
+    // ==================================================
+
+    function addSensorStation(lat, lon, sampleNumber, recordedThickness) {
       const station = {
         id: "SG-" + String(sampleNumber).padStart(2, "0"),
-        lat,
-        lon,
+        lat: lat,
+        lon: lon,
+
+        // Fixed value from the dataset.
+        recordedSoilThickness: recordedThickness,
+
+        // These values will be randomly refreshed.
         readings: generateSensorReadings(),
         updatedAt: new Date(),
-        marker: null
+        marker: null,
+        popupOpen: false
       };
 
       const marker = L.marker([lat, lon], {
@@ -251,9 +262,8 @@
 
       station.marker = marker;
 
-      // Create the popup once and update its contents every 3 seconds.
       marker.bindPopup(sensorPopupHTML(station), {
-        maxWidth: 320,
+        maxWidth: 340,
         minWidth: 270,
         autoPan: true
       });
@@ -270,9 +280,9 @@
       sensorStations.push(station);
     }
 
-    // ----------------------------------------------------
-    // LOAD CSV
-    // ----------------------------------------------------
+    // ==================================================
+    // 7. LOAD THE SOIL-THICKNESS CSV
+    // ==================================================
 
     fetch("./soil_thickness.csv")
       .then(response => {
@@ -281,6 +291,7 @@
             "Could not load soil_thickness.csv. Check the file location."
           );
         }
+
         return response.text();
       })
       .then(csv => {
@@ -306,11 +317,14 @@
           throw new Error("Required CSV columns are missing.");
         }
 
-        const dataRows = rows.slice(1).filter(row => row.trim() !== "");
+        const dataRows = rows
+          .slice(1)
+          .filter(row => row.trim() !== "");
+
+        // Select up to 15 evenly spaced records.
         const pointCount = Math.min(15, dataRows.length);
         const selectedRows = [];
 
-        // Select up to 15 evenly spaced records.
         for (let i = 0; i < pointCount; i++) {
           const index = pointCount === 1
             ? 0
@@ -336,18 +350,22 @@
             !Number.isFinite(lat) ||
             !Number.isFinite(lon) ||
             !Number.isFinite(thickness) ||
-            lat < -90 || lat > 90 ||
-            lon < -180 || lon > 180
+            lat < -90 ||
+            lat > 90 ||
+            lon < -180 ||
+            lon > 180
           ) {
             return;
           }
 
-          // Soil-thickness point: its colour represents thickness only.
+          // Recorded soil-thickness marker.
+          const color = thicknessColor(thickness);
+
           const soilMarker = L.circleMarker([lat, lon], {
             radius: 7,
-            color: thicknessColor(thickness),
+            color: color,
             weight: 2,
-            fillColor: thicknessColor(thickness),
+            fillColor: color,
             fillOpacity: 0.85
           }).addTo(soilThicknessLayer);
 
@@ -358,9 +376,8 @@
             Recorded soil thickness: ${thickness.toFixed(2)} m
           `);
 
-          // Separate clickable simulated station at the same
-          // coordinates for prototype demonstration.
-          addSensorStation(lat, lon, sampleNumber);
+          // Sensor popup receives the SAME sample's thickness.
+          addSensorStation(lat, lon, sampleNumber, thickness);
 
           mapBounds.push([lat, lon]);
         });
@@ -372,14 +389,14 @@
           });
 
           mapMessage.textContent =
-            `Loaded ${mapBounds.length} sample locations and simulated stations.`;
+            `Loaded ${mapBounds.length} soil samples and simulated stations.`;
 
-          // Hide the status message after successful loading.
           window.setTimeout(() => {
             mapMessage.classList.add("hidden");
           }, 3500);
         } else {
-          mapMessage.textContent = "No valid locations were found in the CSV.";
+          mapMessage.textContent =
+            "No valid locations were found in the CSV.";
         }
 
         console.log(
@@ -392,41 +409,11 @@
           "Could not load soil_thickness.csv. Check the browser console.";
       });
 
-    // ----------------------------------------------------
-    // UPDATE ALL SENSOR READINGS EVERY 3 SECONDS
-    // ----------------------------------------------------
+    // ==================================================
+    // 8. UPDATE SIMULATED READINGS EVERY 3 SECONDS
+    // Recorded soil thickness is never changed here.
+    // ==================================================
 
     window.setInterval(() => {
-      sensorStations.forEach(station => {
-        station.readings = generateSensorReadings();
-        station.updatedAt = new Date();
-
-        // Refresh the popup if the user currently has it open.
-        if (
-          station.popupOpen &&
-          station.marker.isPopupOpen()
-        ) {
-          station.marker.setPopupContent(sensorPopupHTML(station));
-        }
-      });
-
-      console.log(
-        "Simulated sensor readings refreshed:",
-        formatTime(new Date())
-      );
-    }, 3000);
-
-    // ----------------------------------------------------
-    // MAP LAYER CONTROL
-    // ----------------------------------------------------
-
-    L.control.layers(null, {
-      "Soil thickness samples": soilThicknessLayer,
-      "Simulated sensor stations": sensorStationLayer
-    }, {
-      collapsed: true
-    }).addTo(map);
-  </script>
-</body>
-</html>
+      sensorStations.forEach(station
 

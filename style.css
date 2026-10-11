@@ -1,5 +1,5 @@
 /* =====================================================
-   SLOPEGUARD MAP — STYLES
+   SLOPEGUARD MAP — STYLESHEET
    ===================================================== */
 
 :root {
@@ -85,7 +85,7 @@ body {
   left: 14px;
   max-width: calc(100% - 28px);
   padding: 12px 14px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 10px;
   box-shadow: 0 2px 10px #17212f20;
   font-size: 12px;
@@ -112,6 +112,8 @@ body {
   border-radius: 50%;
 }
 
+/* Match the soil-marker JavaScript colours. */
+
 .thickness-green {
   background: #23834b;
 }
@@ -127,6 +129,8 @@ body {
 .thickness-red {
   background: #c62828;
 }
+
+/* Blue identifies simulated sensor stations. */
 
 .station-blue {
   background: #1769aa;
@@ -151,7 +155,7 @@ body {
 
 
 /* =====================================================
-   SIMULATED SENSOR STATION MARKERS
+   SENSOR STATION MARKERS
    ===================================================== */
 
 .sensor-marker-wrapper {
@@ -165,9 +169,9 @@ body {
   justify-content: center;
   width: 34px;
   height: 34px;
-  color: #fff;
+  color: #ffffff;
   background: var(--blue);
-  border: 3px solid #fff;
+  border: 3px solid #ffffff;
   border-radius: 50%;
   box-shadow: 0 2px 8px #0004;
   font-size: 13px;
@@ -247,6 +251,18 @@ body {
   white-space: nowrap;
 }
 
+/* Visually distinguish recorded thickness from simulated readings. */
+
+.sensor-popup .soil-record {
+  background: #f4f7fb;
+  border-radius: 5px;
+  padding: 9px 5px;
+}
+
+.sensor-popup .soil-record strong {
+  color: #1769aa;
+}
+
 .sensor-popup .popup-footer {
   display: flex;
   align-items: center;
@@ -285,7 +301,7 @@ body {
 
 
 /* =====================================================
-   MAP LOADING / ERROR MESSAGE
+   LOADING / ERROR MESSAGE
    ===================================================== */
 
 .map-message {
@@ -296,7 +312,7 @@ body {
   max-width: calc(100% - 32px);
   padding: 10px 14px;
   color: #273444;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 2px 10px #17212f20;
@@ -311,7 +327,7 @@ body {
 
 
 /* =====================================================
-   MOBILE LAYOUT
+   RESPONSIVE / MOBILE LAYOUT
    ===================================================== */
 
 @media (max-width: 600px) {

@@ -1,73 +1,507 @@
+/* =========================================================
+   SLOPEGUARD — DASHBOARD STYLESHEET
+   Layout, controls, status indicators, markers and legend
+   ========================================================= */
+
+
+/* =========================================================
+   1. THEME AND BASE LAYOUT
+   ========================================================= */
+
 :root {
-  --ink:#17212f; --muted:#667085; --line:#dfe5ec; --panel:#ffffff;
-  --blue:#1769aa; --green:#23834b; --amber:#a96300; --red:#b42318;
-  --bg:#f4f7fb;
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink)}
-#map{position:absolute;inset:0}
-.topbar{
-  position:absolute;z-index:1000;top:14px;left:14px;
-  background:rgba(255,255,255,.97);border:1px solid var(--line);
-  border-radius:12px;padding:12px 16px;box-shadow:0 3px 15px #17212f20;
-  max-width:calc(100% - 28px)
-}
-.brand{font-size:19px;font-weight:800;letter-spacing:.2px}
-.subtitle{font-size:12px;color:var(--muted);margin-top:3px}
-.demo-tag{display:inline-block;background:#fff3d6;color:#805000;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:800;margin-left:6px;vertical-align:3px}
-.panel{
-  position:absolute;z-index:1000;right:14px;top:14px;width:350px;max-height:calc(100% - 28px);
-  overflow:auto;background:rgba(255,255,255,.98);border:1px solid var(--line);
-  border-radius:14px;box-shadow:0 4px 22px #17212f25;padding:16px
-}
-h2{font-size:16px;margin:0 0 5px}
-h3{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:#475467;margin:16px 0 9px}
-.small{font-size:12px;color:var(--muted);line-height:1.45}
-.control{margin:12px 0}
-.labelrow{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;margin-bottom:6px}
-.value{color:var(--blue);font-variant-numeric:tabular-nums}
-input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer}
-.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-button,select{font:inherit}
-button{border:0;border-radius:8px;padding:9px 10px;font-weight:700;cursor:pointer}
-button:hover{filter:brightness(.96)}
-.primary{background:var(--blue);color:white}
-.secondary{background:#edf1f5;color:#273444}
-.warningbtn{background:#fff0d0;color:#805000}
-.dangerbtn{background:#fee4e2;color:#912018}
-.statusbox{padding:12px;border-radius:9px;background:#e8f5ec;border:1px solid #b8e0c4;margin-top:12px}
-.statusline{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}
-.statusdot{width:10px;height:10px;border-radius:50%;background:var(--green);flex:none}
-.statusbox p{font-size:12px;line-height:1.45;margin:6px 0 0}
-.statusbox.normal{background:#e8f5ec;border-color:#b8e0c4;color:#175c34}
-.statusbox.watch{background:#fff5dd;border-color:#f0d28a;color:#805000}
-.statusbox.emergency{background:#fee4e2;border-color:#f4aaa5;color:#912018}
-.statusbox.fault{background:#f2eaff;border-color:#d7c1ff;color:#592f91}
-.networkrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;background:#f4f6f8;border-radius:8px;font-size:12px;margin-top:10px}
-.pill{border-radius:20px;padding:4px 8px;font-size:10px;font-weight:800;white-space:nowrap}
-.pill.online{background:#d9f5e3;color:#17683a}
-.pill.offline{background:#fff0d0;color:#805000}
-.pill.good{background:#d9f5e3;color:#17683a}
-.pill.pending{background:#e9edf2;color:#475467}
-.sectionline{border:0;border-top:1px solid var(--line);margin:15px 0}
-.scenario{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.scenario button{font-size:12px;line-height:1.25;min-height:43px}
-.history{list-style:none;padding:0;margin:7px 0 0}
-.history li{font-size:11px;line-height:1.4;border-bottom:1px solid #edf0f3;padding:7px 0}
-.history li:last-child{border-bottom:0}
-.history time{color:var(--muted);display:block;font-size:10px;margin-bottom:2px}
-.legend{position:absolute;left:14px;bottom:25px;z-index:900;background:#fff;padding:10px 12px;border-radius:9px;box-shadow:0 2px 10px #17212f20;font-size:11px;line-height:1.8}
-.legend strong{display:block;margin-bottom:3px}
-.legend span{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
-.station-icon{background:#fff;border:3px solid #23834b;border-radius:50%;width:32px!important;height:32px!important;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px #0003;font-size:16px}
-.station-icon.watch{border-color:#d28a00}
-.station-icon.emergency{border-color:#c62828;animation:pulse 1s infinite}
-.station-icon.fault{border-color:#7e57c2}
-.historical-icon{background:#fff;border:2px solid #5e6470;border-radius:50%;width:25px!important;height:25px!important;display:flex;align-items:center;justify-content:center;font-size:13px}
-@keyframes pulse{50%{box-shadow:0 0 0 7px #d32f2f30}}
-@media(max-width:700px){
- .topbar{top:8px;left:8px;padding:9px 11px}.brand{font-size:16px}
- .panel{top:auto;bottom:8px;right:8px;left:8px;width:auto;max-height:58%;padding:13px}
- .legend{left:8px;bottom:calc(58% + 16px);font-size:10px}
+  --ink: #17212f;
+  --muted: #667085;
+  --line: #dfe5ec;
+  --panel: #ffffff;
+  --blue: #1769aa;
+  --green: #23834b;
+  --amber: #a96300;
+  --red: #b42318;
+  --bg: #f4f7fb;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  color: var(--ink);
+  font-family: Inter, Arial, sans-serif;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+
+/* =========================================================
+   2. TOP-LEFT TITLE CARD
+   ========================================================= */
+
+.topbar {
+  position: absolute;
+  z-index: 1000;
+  top: 14px;
+  left: 14px;
+  max-width: calc(100% - 28px);
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 3px 15px #17212f20;
+}
+
+.brand {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.subtitle {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.demo-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 3px 6px;
+  vertical-align: 3px;
+  color: #805000;
+  background: #fff3d6;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   3. RIGHT-SIDE CONTROL PANEL
+   ========================================================= */
+
+.panel {
+  position: absolute;
+  z-index: 1000;
+  top: 14px;
+  right: 14px;
+  width: 350px;
+  max-height: calc(100% - 28px);
+  overflow: auto;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 4px 22px #17212f25;
+}
+
+h2 {
+  margin: 0 0 5px;
+  font-size: 16px;
+}
+
+h3 {
+  margin: 16px 0 9px;
+  color: #475467;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+
+/* =========================================================
+   4. SENSOR SLIDERS AND VALUE LABELS
+   ========================================================= */
+
+.control {
+  margin: 12px 0;
+}
+
+.labelrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.value {
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   5. BUTTONS AND TEST SCENARIOS
+   ========================================================= */
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+button {
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(0.96);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.primary {
+  color: #ffffff;
+  background: var(--blue);
+}
+
+.secondary {
+  color: #273444;
+  background: #edf1f5;
+}
+
+.warningbtn {
+  color: #805000;
+  background: #fff0d0;
+}
+
+.dangerbtn {
+  color: #912018;
+  background: #fee4e2;
+}
+
+.scenario {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.scenario button {
+  min-height: 43px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+
+/* =========================================================
+   6. STATUS BOX
+   ========================================================= */
+
+.statusbox {
+  margin-top: 12px;
+  padding: 12px;
+  background: #e8f5ec;
+  border: 1px solid #b8e0c4;
+  border-radius: 9px;
+}
+
+.statusline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.statusdot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: var(--green);
+  border-radius: 50%;
+}
+
+.statusbox p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.statusbox.normal {
+  color: #175c34;
+  background: #e8f5ec;
+  border-color: #b8e0c4;
+}
+
+.statusbox.watch {
+  color: #805000;
+  background: #fff5dd;
+  border-color: #f0d28a;
+}
+
+.statusbox.emergency {
+  color: #912018;
+  background: #fee4e2;
+  border-color: #f4aaa5;
+}
+
+.statusbox.fault {
+  color: #592f91;
+  background: #f2eaff;
+  border-color: #d7c1ff;
+}
+
+
+/* =========================================================
+   7. REMOTE-LINK STATUS BADGES
+   ========================================================= */
+
+.networkrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  background: #f4f6f8;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.pill {
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pill.online,
+.pill.good {
+  color: #17683a;
+  background: #d9f5e3;
+}
+
+.pill.offline {
+  color: #805000;
+  background: #fff0d0;
+}
+
+.pill.pending {
+  color: #475467;
+  background: #e9edf2;
+}
+
+.sectionline {
+  margin: 15px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+
+/* =========================================================
+   8. EVENT HISTORY
+   ========================================================= */
+
+.history {
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history li {
+  padding: 7px 0;
+  border-bottom: 1px solid #edf0f3;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.history li:last-child {
+  border-bottom: 0;
+}
+
+.history time {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+
+/* =========================================================
+   9. SOIL-THICKNESS MAP LEGEND
+   These colours describe soil thickness only.
+   They do NOT indicate landslide risk.
+   ========================================================= */
+
+.legend {
+  position: absolute;
+  z-index: 900;
+  bottom: 25px;
+  left: 14px;
+  max-width: calc(100% - 28px);
+  padding: 12px 14px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px #17212f20;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.legend strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0;
+}
+
+.legend .legend-dot {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  border-radius: 50%;
+}
+
+/* Match the colours used by the JavaScript markers. */
+
+.legend .thickness-green {
+  background: #23834b;
+}
+
+.legend .thickness-yellow {
+  background: #e6a23c;
+}
+
+.legend .thickness-orange {
+  background: #e66b2e;
+}
+
+.legend .thickness-red {
+  background: #c62828;
+}
+
+.legend .legend-note {
+  max-width: 260px;
+  margin: 6px 0 0;
+  padding-top: 5px;
+  color: #667085;
+  border-top: 1px solid #e9edf2;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+
+/* =========================================================
+   10. MONITORING-STATION MARKERS
+   These classes are separate from soil-thickness markers.
+   ========================================================= */
+
+.station-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important;
+  height: 32px !important;
+  background: #ffffff;
+  border: 3px solid #23834b;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px #0003;
+  font-size: 16px;
+}
+
+.station-icon.watch {
+  border-color: #d28a00;
+}
+
+.station-icon.emergency {
+  border-color: #c62828;
+  animation: pulse 1s infinite;
+}
+
+.station-icon.fault {
+  border-color: #7e57c2;
+}
+
+.historical-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px !important;
+  height: 25px !important;
+  background: #ffffff;
+  border: 2px solid #5e6470;
+  border-radius: 50%;
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   11. ANIMATION
+   ========================================================= */
+
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 0 7px #d32f2f30;
+  }
+}
+
+
+
+
+@media (max-width: 700px) {
+  .topbar {
+    top: 8px;
+    left: 8px;
+    padding: 9px 11px;
+  }
+
+  .brand {
+    font-size: 16px;
+  }
+
+  .panel {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+    max-height: 58%;
+    padding: 13px;
+  }
+
+  .legend {
+    bottom: calc(58% + 16px);
+    left: 8px;
+    font-size: 10px;
+  }
+}

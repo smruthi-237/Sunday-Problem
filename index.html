@@ -1,404 +1,741 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SlopeGuard | Offline Landslide Monitoring</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SlopeGuard | Offline Landslide Monitoring</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-<div id="map"></div>
+  <div id="map"></div>
 
-<div class="topbar">
-  <div class="brand">⛰️ SlopeGuard <span class="demo-tag">MVP SIMULATION</span></div>
-  <div class="subtitle">Offline-first landslide monitoring · Dataset-driven locations</div>
-</div>
-
-<aside class="panel">
-  <h2>Monitoring station simulator</h2>
-  <div class="small">Adjust test readings or select a scenario. These controls test the risk logic; they do not create geographic stations. Map locations will come only from the supplied dataset.</div>
-
-  <div class="control">
-    <div class="labelrow"><label for="rain">Rainfall rate</label><span class="value" id="rainValue">8 mm/h</span></div>
-    <input id="rain" type="range" min="0" max="120" step="1" value="8">
-  </div>
-  <div class="control">
-    <div class="labelrow"><label for="moisture">Soil moisture</label><span class="value" id="moistureValue">42%</span></div>
-    <input id="moisture" type="range" min="0" max="100" step="1" value="42">
-  </div>
-  <div class="control">
-    <div class="labelrow"><label for="tilt">Tilt change</label><span class="value" id="tiltValue">0.02°</span></div>
-    <input id="tilt" type="range" min="0" max="1" step="0.01" value="0.02">
-  </div>
-  <div class="control">
-    <div class="labelrow"><label for="displacement">Displacement change</label><span class="value" id="displacementValue">0.5 mm</span></div>
-    <input id="displacement" type="range" min="0" max="20" step="0.5" value="0.5">
+  <div class="topbar">
+    <div class="brand">
+      ⛰️ SlopeGuard
+      <span class="demo-tag">MVP SIMULATION</span>
+    </div>
+    <div class="subtitle">
+      Offline-first landslide monitoring · Dataset-driven locations
+    </div>
   </div>
 
-  <div class="buttons">
-    <button class="primary" id="applyBtn">Apply readings</button>
-    <button class="secondary" id="resetBtn">Reset</button>
+  <aside class="panel">
+    <h2>Monitoring station simulator</h2>
+
+    <div class="small">
+      Adjust test readings or select a scenario. These controls test the
+      risk logic; they do not create geographic stations. Map locations
+      come from validated dataset records.
+    </div>
+
+    <div class="control">
+      <div class="labelrow">
+        <label for="rain">Rainfall rate</label>
+        <span class="value" id="rainValue">8 mm/h</span>
+      </div>
+      <input id="rain" type="range" min="0" max="120" step="1" value="8">
+    </div>
+
+    <div class="control">
+      <div class="labelrow">
+        <label for="moisture">Soil moisture</label>
+        <span class="value" id="moistureValue">42%</span>
+      </div>
+      <input id="moisture" type="range" min="0" max="100" step="1" value="42">
+    </div>
+
+    <div class="control">
+      <div class="labelrow">
+        <label for="tilt">Tilt change</label>
+        <span class="value" id="tiltValue">0.02°</span>
+      </div>
+      <input id="tilt" type="range" min="0" max="1" step="0.01" value="0.02">
+    </div>
+
+    <div class="control">
+      <div class="labelrow">
+        <label for="displacement">Displacement change</label>
+        <span class="value" id="displacementValue">0.5 mm</span>
+      </div>
+      <input
+        id="displacement"
+        type="range"
+        min="0"
+        max="20"
+        step="0.5"
+        value="0.5"
+      >
+    </div>
+
+    <div class="buttons">
+      <button class="primary" id="applyBtn">Apply readings</button>
+      <button class="secondary" id="resetBtn">Reset</button>
+    </div>
+
+    <h3>Test scenarios</h3>
+
+    <div class="scenario">
+      <button class="secondary" id="normalBtn">Normal conditions</button>
+      <button class="warningbtn" id="wetBtn">Wet soil only</button>
+      <button class="dangerbtn" id="movementBtn">Movement event</button>
+      <button class="secondary" id="faultBtn">Sensor fault</button>
+    </div>
+
+    <div
+      id="statusBox"
+      class="statusbox normal"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="statusline">
+        <span class="statusdot"></span>
+        <span id="statusTitle">NORMAL</span>
+      </div>
+      <p id="statusMessage">
+        No simulated emergency condition detected. Continue monitoring.
+      </p>
+    </div>
+
+    <div class="networkrow">
+      <span>
+        <strong>Remote link</strong><br>
+        <span id="networkMessage">Dashboard link available (simulation)</span>
+      </span>
+      <span id="networkPill" class="pill online">CONNECTED</span>
+    </div>
+
+    <div class="buttons">
+      <button class="secondary" id="networkBtn">Simulate network loss</button>
+      <button class="secondary" id="clearHistoryBtn">Clear history</button>
+    </div>
+
+    <hr class="sectionline">
+
+    <h3>Event history</h3>
+    <div class="small">
+      Local demo log. A real deployment needs persistent storage on the
+      monitoring device.
+    </div>
+
+    <ul class="history" id="historyList">
+      <li><time>Ready</time>Simulation initialized.</li>
+    </ul>
+
+    <hr class="sectionline">
+
+    <h3>Data layers</h3>
+    <div class="small">
+      Historical events and monitoring stations appear only after their
+      datasets are loaded and coordinates validated. Soil-thickness
+      sample points load separately from soil_thickness.csv.
+    </div>
+
+    <div class="networkrow">
+      <span>Historical inventory</span>
+      <span class="pill pending">PENDING DATA</span>
+    </div>
+
+    <div class="networkrow">
+      <span>Sensor readings</span>
+      <span class="pill good">SIMULATED</span>
+    </div>
+
+    <p class="small">
+      Demo thresholds are illustrative only. This is not a validated
+      landslide prediction or operational warning system.
+    </p>
+  </aside>
+
+  <!-- Soil thickness legend -->
+  <div class="legend">
+    <strong>Map legend — Soil thickness</strong>
+
+    <div class="legend-item">
+      <span class="legend-dot thickness-green"></span>
+      Below 0.5 m
+    </div>
+
+    <div class="legend-item">
+      <span class="legend-dot thickness-yellow"></span>
+      0.5 m to below 1.0 m
+    </div>
+
+    <div class="legend-item">
+      <span class="legend-dot thickness-orange"></span>
+      1.0 m to below 1.5 m
+    </div>
+
+    <div class="legend-item">
+      <span class="legend-dot thickness-red"></span>
+      1.5 m or more
+    </div>
+
+    <div class="legend-note">
+      Colours show recorded soil thickness, not landslide risk.
+    </div>
   </div>
 
-  <h3>Test scenarios</h3>
-  <div class="scenario">
-    <button class="secondary" id="normalBtn">Normal conditions</button>
-    <button class="warningbtn" id="wetBtn">Wet soil only</button>
-    <button class="dangerbtn" id="movementBtn">Movement event</button>
-    <button class="secondary" id="faultBtn">Sensor fault</button>
-  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <div id="statusBox" class="statusbox normal" role="status" aria-live="polite">
-    <div class="statusline"><span class="statusdot"></span><span id="statusTitle">NORMAL</span></div>
-    <p id="statusMessage">No simulated emergency condition detected. Continue monitoring.</p>
-  </div>
+  <script>
+    "use strict";
 
-  <div class="networkrow">
-    <span><strong>Remote link</strong><br><span id="networkMessage">Dashboard link available (simulation)</span></span>
-    <span id="networkPill" class="pill online">CONNECTED</span>
-  </div>
-  <div class="buttons">
-    <button class="secondary" id="networkBtn">Simulate network loss</button>
-    <button class="secondary" id="clearHistoryBtn">Clear history</button>
-  </div>
+    // Map and external basemap require connectivity.
+    // The simulator logic runs locally in the browser.
+    const map = L.map("map").setView([20.0, 0.0], 2);
 
-  <hr class="sectionline">
-  <h3>Event history</h3>
-  <div class="small">Local demo log. A real deployment needs persistent storage on the monitoring device.</div>
-  <ul class="history" id="historyList"><li><time>Ready</time>Simulation initialized.</li></ul>
-  <hr class="sectionline">
-  <h3>Data layers</h3>
-  <div class="small">No locations are hard-coded. Historical events and monitoring stations will appear only after their datasets are loaded and coordinates are validated. Soil-thickness sample points load separately from soil_thickness.csv.</div>
-  <div class="networkrow"><span>Historical inventory</span><span class="pill pending">PENDING DATA</span></div>
-  <div class="networkrow"><span>Sensor readings</span><span class="pill good">SIMULATED</span></div>
-  <p class="small">Demo thresholds are illustrative only. This is not a validated landslide prediction or operational warning system.</p>
-</aside>
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
 
-<div class="legend">
-  <strong>Map legend</strong>
-  <div><span style="background:#23834b"></span>Monitoring station — normal</div>
-  <div><span style="background:#d28a00"></span>Watch / elevated concern</div>
-  <div><span style="background:#c62828"></span>Simulated movement alert</div>
-  <div><span style="background:#7e57c2"></span>Sensor fault</div>
-  <div>✚ Emergency services from OpenStreetMap (if available)</div>
-</div>
+    L.control.scale({
+      metric: true,
+      imperial: false
+    }).addTo(map);
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-"use strict";
+    // Dataset-driven layers.
+    const stationData = [];
+    const stations = [];
 
-// Map and external basemap need connectivity. The simulated station logic below
-// runs locally in the browser and does not need an API.
-const map = L.map("map").setView([20.0, 0.0], 2);
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
-L.control.scale({metric:true, imperial:false}).addTo(map);
+    const stationLayer = L.layerGroup().addTo(map);
+    const emergencyLayer = L.layerGroup().addTo(map);
+    const historicalLayer = L.layerGroup().addTo(map);
+    const soilThicknessLayer = L.layerGroup().addTo(map);
 
-// No hard-coded Manipal marker or operational-radius circle.
-// The map will be centered and populated from the supplied dataset when loaded.
+    // Load the soil-thickness CSV.
+    fetch("./soil_thickness.csv")
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Could not load soil_thickness.csv");
+        }
+        return response.text();
+      })
+      .then(csv => {
+        const rows = csv.trim().split(/\r?\n/);
+        const headers = rows[0].split(",").map(h => h.trim());
 
-// Monitoring stations will be created only from dataset records.
-// Until a compatible dataset is loaded, no site markers are fabricated.
-const stationData = [];
-const stations = [];
-const stationLayer = L.layerGroup().addTo(map);
-const emergencyLayer = L.layerGroup().addTo(map);
-const historicalLayer = L.layerGroup().addTo(map); // populated after verified inventory is supplied
-const soilThicknessLayer = L.layerGroup().addTo(map);
+        const latIndex = headers.indexOf("latitude_N");
+        const lonIndex = headers.indexOf("longitude_E");
+        const sampleIndex = headers.indexOf("sample_number");
+        const thicknessIndex = headers.indexOf("soil_thickness_m");
 
-// Load soil-thickness samples from soil_thickness.csv in the repository root.
-// The CSV holds the full dataset; at most 15 evenly spaced rows are displayed.
-fetch("./soil_thickness.csv")
-  .then(response => {
-    if (!response.ok) throw new Error("Could not load soil_thickness.csv");
-    return response.text();
-  })
-  .then(csv => {
-    const rows = csv.trim().split(/\r?\n/);
-    if (rows.length < 2) throw new Error("CSV has no data rows");
+        if (
+          latIndex === -1 ||
+          lonIndex === -1 ||
+          sampleIndex === -1 ||
+          thicknessIndex === -1
+        ) {
+          throw new Error("Required columns are missing from the CSV");
+        }
 
-    const headers = rows[0].replace(/^\uFEFF/, "").split(",").map(h => h.trim());
-    const latIndex = headers.indexOf("latitude_N");
-    const lonIndex = headers.indexOf("longitude_E");
-    const sampleIndex = headers.indexOf("sample_number");
-    const thicknessIndex = headers.indexOf("soil_thickness_m");
+        // Select up to 15 evenly spaced records.
+        const dataRows = rows
+          .slice(1)
+          .filter(row => row.trim() !== "");
 
-    if ([latIndex, lonIndex, sampleIndex, thicknessIndex].includes(-1)) {
-      throw new Error("Required columns are missing from soil_thickness.csv");
+        const pointCount = Math.min(15, dataRows.length);
+        const selectedRows = [];
+
+        if (pointCount === 1) {
+          selectedRows.push(dataRows[0]);
+        } else {
+          for (let i = 0; i < pointCount; i++) {
+            const index = Math.round(
+              i * (dataRows.length - 1) / (pointCount - 1)
+            );
+            selectedRows.push(dataRows[index]);
+          }
+        }
+
+        const bounds = [];
+
+        // These colours represent thickness only, not risk.
+        function thicknessColor(value) {
+          if (value < 0.5) return "#23834b";
+          if (value < 1.0) return "#e6a23c";
+          if (value < 1.5) return "#e66b2e";
+          return "#c62828";
+        }
+
+        selectedRows.forEach(row => {
+          const columns = row.split(",");
+
+          const sample = columns[sampleIndex]?.trim();
+          const lat = Number(columns[latIndex]);
+          const lon = Number(columns[lonIndex]);
+          const thickness = Number(columns[thicknessIndex]);
+
+          if (
+            !sample ||
+            !Number.isFinite(lat) ||
+            !Number.isFinite(lon) ||
+            !Number.isFinite(thickness) ||
+            lat < -90 ||
+            lat > 90 ||
+            lon < -180 ||
+            lon > 180
+          ) {
+            return;
+          }
+
+          const color = thicknessColor(thickness);
+
+          const marker = L.circleMarker([lat, lon], {
+            radius: 7,
+            color: color,
+            weight: 2,
+            fillColor: color,
+            fillOpacity: 0.8
+          });
+
+          marker.bindPopup(`
+            <strong>Soil Thickness Sample ${esc(sample)}</strong><br>
+            Latitude: ${lat.toFixed(6)}<br>
+            Longitude: ${lon.toFixed(6)}<br>
+            Soil thickness: ${thickness.toFixed(2)} m
+          `);
+
+          marker.addTo(soilThicknessLayer);
+          bounds.push([lat, lon]);
+        });
+
+        if (bounds.length > 0) {
+          map.fitBounds(bounds, {
+            padding: [35, 35]
+          });
+        } else {
+          console.warn("No valid soil thickness points were found.");
+        }
+
+        console.log(
+          `Loaded ${bounds.length} soil thickness sample points.`
+        );
+      })
+      .catch(error => {
+        console.error("Soil-thickness layer error:", error);
+      });
+
+    function makeStationIcon(status) {
+      let cls = "station-icon";
+      let symbol = "📡";
+
+      if (status === "WATCH") {
+        cls += " watch";
+        symbol = "⚠️";
+      }
+
+      if (status === "MOVEMENT ALERT") {
+        cls += " emergency";
+        symbol = "🚨";
+      }
+
+      if (status === "SENSOR FAULT") {
+        cls += " fault";
+        symbol = "⚙️";
+      }
+
+      return L.divIcon({
+        className: cls,
+        html: symbol,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16]
+      });
     }
 
-    const dataRows = rows.slice(1).filter(row => row.trim() !== "");
-    const pointCount = Math.min(15, dataRows.length);
-    const selectedRows = [];
+    function readings() {
+      return {
+        rainfall_mm_h: Number(document.getElementById("rain").value),
+        soil_moisture_pct: Number(document.getElementById("moisture").value),
+        tilt_change_deg: Number(document.getElementById("tilt").value),
+        displacement_change_mm: Number(
+          document.getElementById("displacement").value
+        )
+      };
+    }
 
-    if (pointCount === 1) {
-      selectedRows.push(dataRows[0]);
-    } else if (pointCount > 1) {
-      for (let i = 0; i < pointCount; i++) {
-        const index = Math.round(i * (dataRows.length - 1) / (pointCount - 1));
-        selectedRows.push(dataRows[index]);
+    let faultMode = false;
+    let remoteOnline = true;
+    let lastState = "NORMAL";
+    let lastPayload = null;
+
+    const eventLog = [];
+
+    function classify(r) {
+      if (faultMode) {
+        return {
+          status: "SENSOR FAULT",
+          message:
+            "One or more readings are unavailable or invalid. Site condition is uncertain; do not label it safe."
+        };
+      }
+
+      // Illustrative demo rule only. Rainfall or moisture alone
+      // never trigger the simulated movement emergency.
+      if (
+        r.tilt_change_deg >= 0.30 &&
+        r.displacement_change_mm >= 5
+      ) {
+        return {
+          status: "MOVEMENT ALERT",
+          message:
+            "Simulated movement criteria crossed. Follow the site-approved response procedure."
+        };
+      }
+
+      if (
+        r.rainfall_mm_h >= 40 ||
+        r.soil_moisture_pct >= 80 ||
+        r.tilt_change_deg >= 0.10 ||
+        r.displacement_change_mm >= 2
+      ) {
+        return {
+          status: "WATCH",
+          message:
+            "Conditions warrant closer review in this simulation. Wet soil alone does not activate an emergency warning."
+        };
+      }
+
+      return {
+        status: "NORMAL",
+        message:
+          "No simulated emergency condition detected. Continue monitoring."
+      };
+    }
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function timeNow() {
+      return new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+    }
+
+    function logEvent(title, detail) {
+      eventLog.unshift({
+        time: timeNow(),
+        title,
+        detail
+      });
+
+      if (eventLog.length > 12) {
+        eventLog.pop();
+      }
+
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = document.getElementById("historyList");
+
+      if (!eventLog.length) {
+        list.innerHTML =
+          "<li><time>Ready</time>No events recorded.</li>";
+        return;
+      }
+
+      list.innerHTML = eventLog.map(event => `
+        <li>
+          <time>${esc(event.time)}</time>
+          <strong>${esc(event.title)}</strong><br>
+          ${esc(event.detail)}
+        </li>
+      `).join("");
+    }
+
+    function applyReadings(logChange = true) {
+      const r = readings();
+      const result = classify(r);
+
+      lastState = result.status;
+
+      lastPayload = {
+        station_id: "SG-01",
+        timestamp: new Date().toISOString(),
+        data_type: "SIMULATED",
+        sensors: r,
+        sensor_health: faultMode ? "FAULT" : "OK",
+        status: result.status
+      };
+
+      document.getElementById("rainValue").textContent =
+        r.rainfall_mm_h + " mm/h";
+
+      document.getElementById("moistureValue").textContent =
+        r.soil_moisture_pct + "%";
+
+      document.getElementById("tiltValue").textContent =
+        r.tilt_change_deg.toFixed(2) + "°";
+
+      document.getElementById("displacementValue").textContent =
+        r.displacement_change_mm.toFixed(1) + " mm";
+
+      const box = document.getElementById("statusBox");
+
+      box.className = "statusbox " + (
+        result.status === "NORMAL" ? "normal" :
+        result.status === "WATCH" ? "watch" :
+        result.status === "SENSOR FAULT" ? "fault" :
+        "emergency"
+      );
+
+      document.getElementById("statusTitle").textContent =
+        result.status;
+
+      document.getElementById("statusMessage").textContent =
+        result.message;
+
+      stations.forEach(station => {
+        station.status = result.status;
+
+        if (!station.marker) {
+          station.marker = L.marker(
+            [station.lat, station.lon],
+            { icon: makeStationIcon(station.status) }
+          ).addTo(stationLayer);
+        }
+
+        station.marker.setIcon(makeStationIcon(station.status));
+
+        station.marker.bindPopup(`
+          <b>${esc(station.id)} — ${esc(station.name || station.id)}</b><br>
+          <b>Status:</b> ${esc(station.status)}<br>
+          Rainfall: ${r.rainfall_mm_h} mm/h<br>
+          Soil moisture: ${r.soil_moisture_pct}%<br>
+          Tilt change: ${r.tilt_change_deg.toFixed(2)}°<br>
+          Displacement change: ${r.displacement_change_mm.toFixed(1)} mm<br>
+          <b>Data type:</b> SIMULATED
+        `);
+      });
+
+      if (logChange) {
+        const detail =
+          result.status === "MOVEMENT ALERT"
+            ? "Local warning simulation activated; no real siren is connected."
+            : result.status === "SENSOR FAULT"
+            ? "Fault flagged separately from hazard status."
+            : result.status === "WATCH"
+            ? "Caution state; no emergency siren triggered."
+            : "Readings applied; no emergency warning triggered.";
+
+        logEvent(result.status, detail);
       }
     }
 
-    const bounds = [];
-    function thicknessColor(value) {
-      if (value < 0.5) return "#23834b";
-      if (value < 1.0) return "#e6a23c";
-      if (value < 1.5) return "#e66b2e";
-      return "#c62828";
+    function setScenario(kind) {
+      faultMode = false;
+
+      if (kind === "normal") {
+        document.getElementById("rain").value = 8;
+        document.getElementById("moisture").value = 42;
+        document.getElementById("tilt").value = 0.02;
+        document.getElementById("displacement").value = 0.5;
+      } else if (kind === "wet") {
+        document.getElementById("rain").value = 55;
+        document.getElementById("moisture").value = 91;
+        document.getElementById("tilt").value = 0.02;
+        document.getElementById("displacement").value = 0.5;
+      } else if (kind === "movement") {
+        document.getElementById("rain").value = 35;
+        document.getElementById("moisture").value = 74;
+        document.getElementById("tilt").value = 0.42;
+        document.getElementById("displacement").value = 7;
+      } else if (kind === "fault") {
+        document.getElementById("rain").value = 8;
+        document.getElementById("moisture").value = 42;
+        document.getElementById("tilt").value = 0.02;
+        document.getElementById("displacement").value = 0.5;
+        faultMode = true;
+      }
+
+      applyReadings(true);
     }
 
-    selectedRows.forEach(row => {
-      const columns = row.split(",");
-      const sample = columns[sampleIndex]?.trim();
-      const lat = Number(columns[latIndex]);
-      const lon = Number(columns[lonIndex]);
-      const thickness = Number(columns[thicknessIndex]);
-
-      if (!sample || !Number.isFinite(lat) || !Number.isFinite(lon) ||
-          !Number.isFinite(thickness) || lat < -90 || lat > 90 ||
-          lon < -180 || lon > 180) return;
-
-      const color = thicknessColor(thickness);
-      const marker = L.circleMarker([lat, lon], {
-        radius: 7,
-        color,
-        weight: 2,
-        fillColor: color,
-        fillOpacity: 0.8
-      });
-
-      marker.bindPopup(`
-        <strong>Soil Thickness Sample ${esc(sample)}</strong><br>
-        Latitude: ${lat.toFixed(6)}<br>
-        Longitude: ${lon.toFixed(6)}<br>
-        Soil thickness: ${thickness.toFixed(2)} m
-      `);
-      marker.addTo(soilThicknessLayer);
-      bounds.push([lat, lon]);
+    document.getElementById("applyBtn").addEventListener("click", () => {
+      faultMode = false;
+      applyReadings(true);
     });
 
-    if (bounds.length > 0) {
-      map.fitBounds(bounds, { padding: [35, 35] });
-      console.log(`Loaded ${bounds.length} soil-thickness sample points.`);
-    } else {
-      console.warn("No valid soil-thickness sample points were found.");
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      setScenario("normal");
+    });
+
+    document.getElementById("normalBtn").addEventListener("click", () => {
+      setScenario("normal");
+    });
+
+    document.getElementById("wetBtn").addEventListener("click", () => {
+      setScenario("wet");
+    });
+
+    document.getElementById("movementBtn").addEventListener("click", () => {
+      setScenario("movement");
+    });
+
+    document.getElementById("faultBtn").addEventListener("click", () => {
+      setScenario("fault");
+    });
+
+    document.getElementById("networkBtn").addEventListener("click", () => {
+      remoteOnline = !remoteOnline;
+
+      const pill = document.getElementById("networkPill");
+      const message = document.getElementById("networkMessage");
+      const button = document.getElementById("networkBtn");
+
+      if (remoteOnline) {
+        pill.className = "pill online";
+        pill.textContent = "CONNECTED";
+        message.textContent = "Remote link available (simulation)";
+        button.textContent = "Simulate network loss";
+
+        logEvent(
+          "REMOTE LINK RESTORED",
+          "Remote link restored in the simulation."
+        );
+      } else {
+        pill.className = "pill offline";
+        pill.textContent = "OFFLINE";
+        message.textContent =
+          "Remote link unavailable; local assessment continues";
+        button.textContent = "Restore remote link";
+
+        logEvent(
+          "REMOTE LINK LOST",
+          "Local assessment continues. Remote delivery is not implemented."
+        );
+      }
+    });
+
+    document.getElementById("clearHistoryBtn").addEventListener("click", () => {
+      eventLog.length = 0;
+      renderHistory();
+    });
+
+    ["rain", "moisture", "tilt", "displacement"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => {
+        const r = readings();
+
+        document.getElementById("rainValue").textContent =
+          r.rainfall_mm_h + " mm/h";
+
+        document.getElementById("moistureValue").textContent =
+          r.soil_moisture_pct + "%";
+
+        document.getElementById("tiltValue").textContent =
+          r.tilt_change_deg.toFixed(2) + "°";
+
+        document.getElementById("displacementValue").textContent =
+          r.displacement_change_mm.toFixed(1) + " mm";
+      });
+    });
+
+    // Optional emergency-service markers from OpenStreetMap.
+    // This request requires connectivity and can time out.
+    const serviceQuery = `[out:json][timeout:20];(
+      node["amenity"="hospital"](13.08,74.52,13.63,75.06);
+      node["amenity"="fire_station"](13.08,74.52,13.63,75.06);
+      node["amenity"="police"](13.08,74.52,13.63,75.06);
+    );out;`;
+
+    fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+      },
+      body: "data=" + encodeURIComponent(serviceQuery)
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("OSM query failed");
+        }
+        return response.json();
+      })
+      .then(data => {
+        data.elements.forEach(place => {
+          if (
+            typeof place.lat !== "number" ||
+            typeof place.lon !== "number"
+          ) {
+            return;
+          }
+
+          const amenity = place.tags?.amenity || "emergency service";
+          const symbol =
+            amenity === "hospital" ? "🏥" :
+            amenity === "fire_station" ? "🚒" :
+            "🚓";
+
+          const name = place.tags?.name || "Unnamed location";
+
+          const icon = L.divIcon({
+            className: "historical-icon",
+            html: symbol,
+            iconSize: [25, 25],
+            iconAnchor: [12, 12]
+          });
+
+          L.marker([place.lat, place.lon], { icon })
+            .addTo(emergencyLayer)
+            .bindPopup(`
+              <b>${esc(name)}</b><br>
+              ${esc(amenity.replace("_", " "))}<br>
+              <small>Source: OpenStreetMap</small>
+            `);
+        });
+      })
+      .catch(error => {
+        console.warn(
+          "Emergency services layer unavailable; local demo remains usable.",
+          error
+        );
+      });
+
+    L.control.layers(null, {
+      "Monitoring stations (dataset)": stationLayer,
+      "Emergency services (OSM)": emergencyLayer,
+      "Historical landslides (dataset)": historicalLayer,
+      "Soil thickness samples (up to 15)": soilThicknessLayer
+    }, {
+      collapsed: true
+    }).addTo(map);
+
+    function fitMapToDatasetLayers() {
+      const bounds = L.featureGroup([
+        historicalLayer,
+        stationLayer
+      ]).getBounds();
+
+      if (bounds.isValid()) {
+        map.fitBounds(bounds.pad(0.12));
+      }
     }
-  })
-  .catch(error => console.error("Soil-thickness layer error:", error));
 
+    applyReadings(false);
 
-function makeStationIcon(status) {
-  let cls = "station-icon";
-  let symbol = "📡";
-  if (status === "WATCH") { cls += " watch"; symbol = "⚠️"; }
-  if (status === "MOVEMENT ALERT") { cls += " emergency"; symbol = "🚨"; }
-  if (status === "SENSOR FAULT") { cls += " fault"; symbol = "⚙️"; }
-  return L.divIcon({className:cls, html:symbol, iconSize:[32,32], iconAnchor:[16,16], popupAnchor:[0,-16]});
-}
-
-function readings() {
-  return {
-    rainfall_mm_h: Number(document.getElementById("rain").value),
-    soil_moisture_pct: Number(document.getElementById("moisture").value),
-    tilt_change_deg: Number(document.getElementById("tilt").value),
-    displacement_change_mm: Number(document.getElementById("displacement").value)
-  };
-}
-function currentScenario() {
-  return document.querySelector('input[data-fault="true"]') ? "FAULT" : "READINGS";
-}
-let faultMode = false;
-let remoteOnline = true;
-let lastState = "NORMAL";
-let lastPayload = null;
-const eventLog = [];
-
-function classify(r) {
-  if (faultMode) return {
-    status:"SENSOR FAULT",
-    message:"One or more readings are unavailable or invalid. Site condition is uncertain; do not label it safe."
-  };
-  // Illustrative demonstration rule only. Moisture/rainfall by themselves
-  // never trigger an emergency movement alert in this demo.
-  if (r.tilt_change_deg >= 0.30 && r.displacement_change_mm >= 5) return {
-    status:"MOVEMENT ALERT",
-    message:"Simulated movement criteria crossed. Demonstrate local siren/voice alert and follow the site-approved response procedure."
-  };
-  if (r.rainfall_mm_h >= 40 || r.soil_moisture_pct >= 80 || r.tilt_change_deg >= 0.10 || r.displacement_change_mm >= 2) return {
-    status:"WATCH",
-    message:"Conditions warrant closer review in this simulation. Wet soil alone does not activate the emergency siren."
-  };
-  return {status:"NORMAL", message:"No simulated emergency condition detected. Continue monitoring."};
-}
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-function timeNow() {
-  return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
-}
-function logEvent(title, detail) {
-  eventLog.unshift({time:timeNow(), title, detail});
-  if (eventLog.length > 12) eventLog.pop();
-  renderHistory();
-}
-function renderHistory() {
-  const list = document.getElementById("historyList");
-  if (!eventLog.length) {
-    list.innerHTML = "<li><time>Ready</time>No events recorded.</li>";
-    return;
-  }
-  list.innerHTML = eventLog.map(e => `<li><time>${esc(e.time)}</time><strong>${esc(e.title)}</strong><br>${esc(e.detail)}</li>`).join("");
-}
-function applyReadings(logChange=true) {
-  const r = readings();
-  const result = classify(r);
-  lastState = result.status;
-  lastPayload = {
-    station_id: "SG-01",
-    timestamp: new Date().toISOString(),
-    data_type: "SIMULATED",
-    sensors: r,
-    sensor_health: faultMode ? "FAULT" : "OK",
-    status: result.status
-  };
-  document.getElementById("rainValue").textContent = r.rainfall_mm_h + " mm/h";
-  document.getElementById("moistureValue").textContent = r.soil_moisture_pct + "%";
-  document.getElementById("tiltValue").textContent = r.tilt_change_deg.toFixed(2) + "°";
-  document.getElementById("displacementValue").textContent = r.displacement_change_mm.toFixed(1) + " mm";
-  const box = document.getElementById("statusBox");
-  box.className = "statusbox " + (
-    result.status === "NORMAL" ? "normal" :
-    result.status === "WATCH" ? "watch" :
-    result.status === "SENSOR FAULT" ? "fault" : "emergency"
-  );
-  document.getElementById("statusTitle").textContent = result.status;
-  document.getElementById("statusMessage").textContent = result.message;
-  stations.forEach((s) => {
-    // If stations are loaded from the dataset, update those validated records only.
-    s.status = result.status;
-    if (!s.marker) {
-      s.marker = L.marker([s.lat,s.lon], {icon:makeStationIcon(s.status)}).addTo(stationLayer);
-    }
-    s.marker.setIcon(makeStationIcon(s.status));
-    const popup = `<b>${esc(s.id)} — ${esc(s.name || s.id)}</b><br>
-      <b>Status:</b> ${esc(s.status)}<br>
-      Rainfall: ${r.rainfall_mm_h} mm/h<br>
-      Soil moisture: ${r.soil_moisture_pct}%<br>
-      Tilt change: ${r.tilt_change_deg.toFixed(2)}°<br>
-      Displacement change: ${r.displacement_change_mm.toFixed(1)} mm<br>
-      <b>Data type:</b> SIMULATED`;
-    s.marker.bindPopup(popup);
-  });
-  if (logChange) {
-    let detail = result.status === "MOVEMENT ALERT"
-      ? "Local warning simulation activated; no real siren is connected."
-      : result.status === "SENSOR FAULT"
-      ? "Fault flagged separately from hazard status."
-      : result.status === "WATCH"
-      ? "Caution state; no emergency siren triggered."
-      : "Readings applied; no emergency warning triggered.";
-    logEvent(result.status, detail);
-  }
-}
-function setScenario(kind) {
-  faultMode = false;
-  if (kind === "normal") {
-    rain.value=8; moisture.value=42; tilt.value=0.02; displacement.value=0.5;
-  } else if (kind === "wet") {
-    rain.value=55; moisture.value=91; tilt.value=0.02; displacement.value=0.5;
-  } else if (kind === "movement") {
-    rain.value=35; moisture.value=74; tilt.value=0.42; displacement.value=7;
-  } else if (kind === "fault") {
-    rain.value=8; moisture.value=42; tilt.value=0.02; displacement.value=0.5; faultMode=true;
-  }
-  applyReadings(true);
-}
-document.getElementById("applyBtn").addEventListener("click", () => { faultMode=false; applyReadings(true); });
-document.getElementById("resetBtn").addEventListener("click", () => setScenario("normal"));
-document.getElementById("normalBtn").addEventListener("click", () => setScenario("normal"));
-document.getElementById("wetBtn").addEventListener("click", () => setScenario("wet"));
-document.getElementById("movementBtn").addEventListener("click", () => setScenario("movement"));
-document.getElementById("faultBtn").addEventListener("click", () => setScenario("fault"));
-
-document.getElementById("networkBtn").addEventListener("click", () => {
-  remoteOnline = !remoteOnline;
-  const pill = document.getElementById("networkPill");
-  const msg = document.getElementById("networkMessage");
-  const btn = document.getElementById("networkBtn");
-  if (remoteOnline) {
-    pill.className="pill online"; pill.textContent="CONNECTED";
-    msg.textContent="Remote link available (simulation)";
-    btn.textContent="Simulate network loss";
-    logEvent("REMOTE LINK RESTORED", "Queued demo updates can now be synchronized.");
-  } else {
-    pill.className="pill offline"; pill.textContent="OFFLINE";
-    msg.textContent="Remote link unavailable; local assessment continues";
-    btn.textContent="Restore remote link";
-    logEvent("REMOTE LINK LOST", "Local assessment and local warning logic remain active; remote delivery is queued.");
-  }
-});
-document.getElementById("clearHistoryBtn").addEventListener("click", () => {
-  eventLog.length=0; renderHistory();
-});
-["rain","moisture","tilt","displacement"].forEach(id => {
-  document.getElementById(id).addEventListener("input", () => {
-    const r=readings();
-    document.getElementById("rainValue").textContent=r.rainfall_mm_h+" mm/h";
-    document.getElementById("moistureValue").textContent=r.soil_moisture_pct+"%";
-    document.getElementById("tiltValue").textContent=r.tilt_change_deg.toFixed(2)+"°";
-    document.getElementById("displacementValue").textContent=r.displacement_change_mm.toFixed(1)+" mm";
-  });
-});
-
-// Optional emergency-services context from OSM. The map basemap and OSM query need
-// connectivity; if the request fails, the local demo still works.
-const serviceIcon = L.divIcon({
-  className:"historical-icon", html:"✚", iconSize:[25,25], iconAnchor:[12,12]
-});
-const serviceQuery = `[out:json][timeout:20];(
-  node["amenity"="hospital"](13.08,74.52,13.63,75.06);
-  node["amenity"="fire_station"](13.08,74.52,13.63,75.06);
-  node["amenity"="police"](13.08,74.52,13.63,75.06);
-);out;`;
-fetch("https://overpass-api.de/api/interpreter", {
-  method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},
-  body:"data="+encodeURIComponent(serviceQuery)
-}).then(r => { if(!r.ok) throw new Error("OSM query failed"); return r.json(); })
-.then(data => data.elements.forEach(p => {
-  if (typeof p.lat !== "number" || typeof p.lon !== "number") return;
-  const amenity = p.tags?.amenity || "emergency service";
-  const icon = amenity==="hospital" ? "🏥" : amenity==="fire_station" ? "🚒" : "🚓";
-  const name = p.tags?.name || "Unnamed location";
-  L.marker([p.lat,p.lon], {icon:L.divIcon({className:"historical-icon",html:icon,iconSize:[25,25],iconAnchor:[12,12]})})
-    .addTo(emergencyLayer)
-    .bindPopup(`<b>${esc(name)}</b><br>${esc(amenity.replace("_"," "))}<br><small>Source: OpenStreetMap</small>`);
-}))
-.catch(err => console.warn("Emergency services layer unavailable; local demo remains usable.", err));
-
-L.control.layers(null, {
-  "Monitoring stations (dataset)":stationLayer,
-  "Emergency services (OSM)":emergencyLayer,
-  "Historical landslides (dataset)":historicalLayer,
-  "Soil thickness samples (up to 15)":soilThicknessLayer
-}, {collapsed:true}).addTo(map);
-
-// Dataset integration contract (to be connected when the cleaned file arrives):
-// 1) Parse the supplied inventory.
-// 2) Validate latitude/longitude and required fields.
-// 3) Add historical events to historicalLayer and actual station records to stationLayer.
-// 4) Fit the map to validated records; never substitute default coordinates.
-function fitMapToDatasetLayers() {
-  const bounds = L.featureGroup([historicalLayer, stationLayer]).getBounds();
-  if (bounds.isValid()) map.fitBounds(bounds.pad(0.12));
-}
-
-applyReadings(false);
-logEvent("SYSTEM READY", "Local simulation initialized. No real sensors or warning devices are connected.");
-</script>
+    logEvent(
+      "SYSTEM READY",
+      "Local simulation initialized. No real sensors or warning devices are connected."
+    );
+  </script>
 </body>
 </html>
 

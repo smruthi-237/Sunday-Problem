@@ -158,66 +158,76 @@
     // SENSOR POPUP
     // ----------------------------------------------------
 
-    function sensorPopupHTML(station) {
-      const r = station.readings;
+   function sensorPopupHTML(station) {
+  const r = station.readings;
 
-      return `
-        <div class="sensor-popup">
-          <div class="popup-heading">
-            <strong>${escapeHTML(station.id)}</strong>
-            <span class="simulated-badge">SIMULATED</span>
-          </div>
+  return `
+    <div class="sensor-popup">
+      <div class="popup-heading">
+        <strong>${escapeHTML(station.id)}</strong>
+        <span class="simulated-badge">SIMULATED</span>
+      </div>
 
-          <div class="popup-subtitle">
-            Monitoring station · Demo readings
-          </div>
+      <div class="popup-subtitle">
+        Monitoring station · Demo readings
+      </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">🌧️</span>
-            <span class="reading-name">Rainfall rate</span>
-            <strong>${r.rainfall} mm/h</strong>
-          </div>
+      <div class="popup-reading">
+        <span class="reading-icon">🌧️</span>
+        <span class="reading-name">Rainfall rate</span>
+        <strong>${r.rainfall} mm/h</strong>
+      </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">💧</span>
-            <span class="reading-name">Soil moisture</span>
-            <strong>${r.soilMoisture}%</strong>
-          </div>
+      <div class="popup-reading">
+        <span class="reading-icon">💧</span>
+        <span class="reading-name">Soil moisture</span>
+        <strong>${r.soilMoisture}%</strong>
+      </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">📐</span>
-            <span class="reading-name">Tilt change</span>
-            <strong>${r.tilt.toFixed(3)}°</strong>
-          </div>
+      <div class="popup-reading">
+        <span class="reading-icon">📐</span>
+        <span class="reading-name">Tilt change</span>
+        <strong>${r.tilt.toFixed(3)}°</strong>
+      </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">〰️</span>
-            <span class="reading-name">Acoustic thickness estimate</span>
-            <strong>${r.soilThicknessEstimate.toFixed(2)} m</strong>
-          </div>
+      <div class="popup-reading">
+        <span class="reading-icon">〰️</span>
+        <span class="reading-name">Acoustic thickness estimate</span>
+        <strong>${r.soilThicknessEstimate.toFixed(2)} m</strong>
+      </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">🌊</span>
-            <span class="reading-name">Water index</span>
-            <strong>${r.waterIndex}%</strong>
-          </div>
+      <div class="popup-reading">
+        <span class="reading-icon">🌊</span>
+        <span class="reading-name">Water index</span>
+        <strong>${r.waterIndex}%</strong>
+      </div>
 
-          <div class="popup-footer">
-            <span class="live-dot"></span>
-            Random demo data · Updates every 3 seconds
-          </div>
+      <div class="popup-reading soil-record">
+        <span class="reading-icon">🌱</span>
+        <span class="reading-name">Recorded soil thickness</span>
+        <strong>${
+          station.recordedSoilThickness == null
+            ? "Unavailable"
+            : station.recordedSoilThickness.toFixed(2) + " m"
+        }</strong>
+      </div>
 
-          <div class="popup-updated">
-            Last updated: ${formatTime(station.updatedAt)}
-          </div>
+      <div class="popup-footer">
+        <span class="live-dot"></span>
+        Random demo readings · Updates every 3 seconds
+      </div>
 
-          <div class="popup-disclaimer">
-            These values are simulated. The acoustic estimate and water
-            index are placeholders, not validated measurements.
-          </div>
-        </div>
-      `;
-    }
+      <div class="popup-updated">
+        Last updated: ${formatTime(station.updatedAt)}
+      </div>
+
+      <div class="popup-disclaimer">
+        Sensor readings are simulated. Recorded soil thickness comes
+        from the CSV dataset and does not update automatically.
+      </div>
+    </div>
+  `;
+}
 
     // ----------------------------------------------------
     // CREATE A SIMULATED STATION AT A DATASET LOCATION

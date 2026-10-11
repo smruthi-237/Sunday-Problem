@@ -5,26 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SlopeGuard | Landslide Monitoring Map</title>
 
+  <!-- Leaflet map styles -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   >
+
+  <!-- Our website styles -->
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+  <!-- Full-screen map -->
   <div id="map"></div>
 
+  <!-- Website heading -->
   <header class="topbar">
     <div class="brand">
       ⛰️ SlopeGuard
       <span class="demo-tag">MVP SIMULATION</span>
     </div>
+
     <div class="subtitle">
       Landslide monitoring · Interactive sensor map
     </div>
   </header>
 
+  <!-- Map legend -->
   <div class="legend">
     <strong>Map legend — Soil thickness</strong>
 
@@ -32,14 +39,17 @@
       <span class="legend-dot thickness-green"></span>
       Below 0.5 m
     </div>
+
     <div class="legend-item">
       <span class="legend-dot thickness-yellow"></span>
       0.5 m to below 1.0 m
     </div>
+
     <div class="legend-item">
       <span class="legend-dot thickness-orange"></span>
       1.0 m to below 1.5 m
     </div>
+
     <div class="legend-item">
       <span class="legend-dot thickness-red"></span>
       1.5 m or more
@@ -58,10 +68,12 @@
     </div>
   </div>
 
+  <!-- Loading and error messages -->
   <div class="map-message" id="mapMessage" role="status">
     Loading map data...
   </div>
 
+  <!-- Leaflet JavaScript library -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
@@ -73,17 +85,20 @@
 
     const map = L.map("map").setView([20, 0], 2);
 
+    // OpenStreetMap tiles
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
+    // Map scale
     L.control.scale({
       metric: true,
       imperial: false
     }).addTo(map);
 
+    // Separate layers for samples and simulated stations
     const soilThicknessLayer = L.layerGroup().addTo(map);
     const sensorStationLayer = L.layerGroup().addTo(map);
 
@@ -112,6 +127,7 @@
       });
     }
 
+    // These colours represent recorded soil thickness only.
     function thicknessColor(value) {
       if (value < 0.5) return "#23834b";
       if (value < 1.0) return "#e6a23c";
@@ -121,7 +137,7 @@
 
     // ==================================================
     // 3. SIMULATED SENSOR READINGS
-    // These values are for demonstration only.
+    // Demonstration values, not actual measurements.
     // ==================================================
 
     function randomBetween(min, max, decimals = 1) {
@@ -153,8 +169,7 @@
     }
 
     // ==================================================
-    // 5. POPUP CONTENT
-    // Shows sensor readings AND recorded soil thickness.
+    // 5. SENSOR POPUP CONTENT
     // ==================================================
 
     function sensorPopupHTML(station) {
@@ -234,8 +249,7 @@
     }
 
     // ==================================================
-    // 6. CREATE A SENSOR STATION
-    // Recorded soil thickness is passed in from the CSV.
+    // 6. CREATE A SIMULATED SENSOR STATION
     // ==================================================
 
     function addSensorStation(lat, lon, sampleNumber, recordedThickness) {
@@ -244,10 +258,10 @@
         lat: lat,
         lon: lon,
 
-        // Fixed value from the dataset.
+        // Fixed recorded value from the CSV
         recordedSoilThickness: recordedThickness,
 
-        // These values will be randomly refreshed.
+        // Randomized demonstration readings
         readings: generateSensorReadings(),
         updatedAt: new Date(),
         marker: null,
@@ -294,6 +308,7 @@
 
         return response.text();
       })
+
       .then(csv => {
         const rows = csv.trim().split(/\r?\n/);
 
@@ -358,7 +373,7 @@
             return;
           }
 
-          // Recorded soil-thickness marker.
+          // Recorded soil-thickness marker
           const color = thicknessColor(thickness);
 
           const soilMarker = L.circleMarker([lat, lon], {
@@ -376,7 +391,7 @@
             Recorded soil thickness: ${thickness.toFixed(2)} m
           `);
 
-          // Sensor popup receives the SAME sample's thickness.
+          // The station popup includes this sample's recorded thickness.
           addSensorStation(lat, lon, sampleNumber, thickness);
 
           mapBounds.push([lat, lon]);
@@ -403,18 +418,20 @@
           `Loaded ${mapBounds.length} soil samples and simulated stations.`
         );
       })
+
       .catch(error => {
         console.error("Map data error:", error);
+
         mapMessage.textContent =
           "Could not load soil_thickness.csv. Check the browser console.";
       });
 
     // ==================================================
     // 8. UPDATE SIMULATED READINGS EVERY 3 SECONDS
-    // Recorded soil thickness is never changed here.
+    // Recorded soil thickness never changes here.
     // ==================================================
 
-        window.setInterval(() => {
+    window.setInterval(() => {
       sensorStations.forEach(station => {
         station.readings = generateSensorReadings();
         station.updatedAt = new Date();
@@ -425,15 +442,21 @@
       });
     }, 3000);
 
-    // Layer control
+    // ==================================================
+    // 9. MAP LAYER CONTROL
+    // ==================================================
+
     L.control.layers(
       null,
       {
         "Soil thickness samples": soilThicknessLayer,
         "Simulated sensor stations": sensorStationLayer
       },
-      { collapsed: true }
+      {
+        collapsed: true
+      }
     ).addTo(map);
+
   </script>
 </body>
 </html>

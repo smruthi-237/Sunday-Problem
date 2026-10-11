@@ -414,6 +414,26 @@
     // Recorded soil thickness is never changed here.
     // ==================================================
 
-    window.setInterval(() => {
-      sensorStations.forEach(station
+        window.setInterval(() => {
+      sensorStations.forEach(station => {
+        station.readings = generateSensorReadings();
+        station.updatedAt = new Date();
 
+        if (station.popupOpen) {
+          station.marker.setPopupContent(sensorPopupHTML(station));
+        }
+      });
+    }, 3000);
+
+    // Layer control
+    L.control.layers(
+      null,
+      {
+        "Soil thickness samples": soilThicknessLayer,
+        "Simulated sensor stations": sensorStationLayer
+      },
+      { collapsed: true }
+    ).addTo(map);
+  </script>
+</body>
+</html>

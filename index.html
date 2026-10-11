@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sunday Problem | Offline Landslide Monitoring</title>
+<title>SlopeGuard | Offline Landslide Monitoring</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css">
-
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="map"></div>
@@ -70,7 +69,7 @@
   <ul class="history" id="historyList"><li><time>Ready</time>Simulation initialized.</li></ul>
   <hr class="sectionline">
   <h3>Data layers</h3>
-  <div class="small">No locations are hard-coded. Historical events and monitoring stations will appear only after the supplied dataset is loaded and its coordinates are validated.</div>
+  <div class="small">No locations are hard-coded. Historical events and monitoring stations will appear only after their datasets are loaded and coordinates are validated. Soil-thickness sample points load separately from soil_thickness.csv.</div>
   <div class="networkrow"><span>Historical inventory</span><span class="pill pending">PENDING DATA</span></div>
   <div class="networkrow"><span>Sensor readings</span><span class="pill good">SIMULATED</span></div>
   <p class="small">Demo thresholds are illustrative only. This is not a validated landslide prediction or operational warning system.</p>
@@ -108,6 +107,89 @@ const stations = [];
 const stationLayer = L.layerGroup().addTo(map);
 const emergencyLayer = L.layerGroup().addTo(map);
 const historicalLayer = L.layerGroup().addTo(map); // populated after verified inventory is supplied
+const soilThicknessLayer = L.layerGroup().addTo(map);
+
+// Load soil-thickness samples from soil_thickness.csv in the repository root.
+// The CSV holds the full dataset; at most 15 evenly spaced rows are displayed.
+fetch("./soil_thickness.csv")
+  .then(response => {
+    if (!response.ok) throw new Error("Could not load soil_thickness.csv");
+    return response.text();
+  })
+  .then(csv => {
+    const rows = csv.trim().split(/\r?\n/);
+    if (rows.length < 2) throw new Error("CSV has no data rows");
+
+    const headers = rows[0].replace(/^\uFEFF/, "").split(",").map(h => h.trim());
+    const latIndex = headers.indexOf("latitude_N");
+    const lonIndex = headers.indexOf("longitude_E");
+    const sampleIndex = headers.indexOf("sample_number");
+    const thicknessIndex = headers.indexOf("soil_thickness_m");
+
+    if ([latIndex, lonIndex, sampleIndex, thicknessIndex].includes(-1)) {
+      throw new Error("Required columns are missing from soil_thickness.csv");
+    }
+
+    const dataRows = rows.slice(1).filter(row => row.trim() !== "");
+    const pointCount = Math.min(15, dataRows.length);
+    const selectedRows = [];
+
+    if (pointCount === 1) {
+      selectedRows.push(dataRows[0]);
+    } else if (pointCount > 1) {
+      for (let i = 0; i < pointCount; i++) {
+        const index = Math.round(i * (dataRows.length - 1) / (pointCount - 1));
+        selectedRows.push(dataRows[index]);
+      }
+    }
+
+    const bounds = [];
+    function thicknessColor(value) {
+      if (value < 0.5) return "#23834b";
+      if (value < 1.0) return "#e6a23c";
+      if (value < 1.5) return "#e66b2e";
+      return "#c62828";
+    }
+
+    selectedRows.forEach(row => {
+      const columns = row.split(",");
+      const sample = columns[sampleIndex]?.trim();
+      const lat = Number(columns[latIndex]);
+      const lon = Number(columns[lonIndex]);
+      const thickness = Number(columns[thicknessIndex]);
+
+      if (!sample || !Number.isFinite(lat) || !Number.isFinite(lon) ||
+          !Number.isFinite(thickness) || lat < -90 || lat > 90 ||
+          lon < -180 || lon > 180) return;
+
+      const color = thicknessColor(thickness);
+      const marker = L.circleMarker([lat, lon], {
+        radius: 7,
+        color,
+        weight: 2,
+        fillColor: color,
+        fillOpacity: 0.8
+      });
+
+      marker.bindPopup(`
+        <strong>Soil Thickness Sample ${esc(sample)}</strong><br>
+        Latitude: ${lat.toFixed(6)}<br>
+        Longitude: ${lon.toFixed(6)}<br>
+        Soil thickness: ${thickness.toFixed(2)} m
+      `);
+      marker.addTo(soilThicknessLayer);
+      bounds.push([lat, lon]);
+    });
+
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [35, 35] });
+      console.log(`Loaded ${bounds.length} soil-thickness sample points.`);
+    } else {
+      console.warn("No valid soil-thickness sample points were found.");
+    }
+  })
+  .catch(error => console.error("Soil-thickness layer error:", error));
+
 
 function makeStationIcon(status) {
   let cls = "station-icon";
@@ -300,7 +382,8 @@ fetch("https://overpass-api.de/api/interpreter", {
 L.control.layers(null, {
   "Monitoring stations (dataset)":stationLayer,
   "Emergency services (OSM)":emergencyLayer,
-  "Historical landslides (dataset)":historicalLayer
+  "Historical landslides (dataset)":historicalLayer,
+  "Soil thickness samples (up to 15)":soilThicknessLayer
 }, {collapsed:true}).addTo(map);
 
 // Dataset integration contract (to be connected when the cleaned file arrives):
@@ -318,3 +401,4 @@ logEvent("SYSTEM READY", "Local simulation initialized. No real sensors or warni
 </script>
 </body>
 </html>
+

@@ -233,7 +233,7 @@
     // CREATE A SIMULATED STATION AT A DATASET LOCATION
     // ----------------------------------------------------
 
-    function addSensorStation(lat, lon, sampleNumber) {
+    function addSensorStation(lat, lon, sampleNumber, recordedThickness) { {
       const station = {
         id: "SG-" + String(sampleNumber).padStart(2, "0"),
         lat,

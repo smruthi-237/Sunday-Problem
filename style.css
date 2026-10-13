@@ -240,3 +240,26 @@ body {
   }
 }
 
+/* Sensor highlight animation */
+.sensor-marker.sensor-highlight {
+  background-color: #ff2d55 !important;
+  outline: 3px solid rgba(255, 45, 85, 0.35);
+  box-shadow: 0 0 0 6px rgba(255, 45, 85, 0.18),
+              0 0 18px rgba(255, 45, 85, 0.9);
+  animation: sensorBlink 0.7s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+@keyframes sensorBlink {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.45;
+    transform: scale(1.25);
+  }
+}
+
+
+

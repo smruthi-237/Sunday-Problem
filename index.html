@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,55 +18,6 @@
   <!-- Full-screen map -->
   <div id="map"></div>
 
-  <!-- Compact title card -->
-  <header class="topbar">
-    <div class="brand">
-      <span>⛰️ SlopeGuard</span>
-      <span class="demo-tag">MVP SIMULATION</span>
-    </div>
-
-    <div class="subtitle">
-      Landslide monitoring · Interactive sensor map
-    </div>
-  </header>
-
-  <!-- Soil-thickness legend -->
-  <div class="legend">
-    <strong>Map legend — Soil thickness</strong>
-
-    <div class="legend-item">
-      <span class="legend-dot thickness-green"></span>
-      Below 0.5 m
-    </div>
-
-    <div class="legend-item">
-      <span class="legend-dot thickness-yellow"></span>
-      0.5 m to below 1.0 m
-    </div>
-
-    <div class="legend-item">
-      <span class="legend-dot thickness-orange"></span>
-      1.0 m to below 1.5 m
-    </div>
-
-    <div class="legend-item">
-      <span class="legend-dot thickness-red"></span>
-      1.5 m or more
-    </div>
-
-    <div class="legend-divider"></div>
-
-    <div class="legend-item">
-      <span class="legend-dot station-blue">S</span>
-      S = Simulated sensor station
-    </div>
-
-    <div class="legend-note">
-      Marker colour represents recorded soil thickness, not landslide
-      risk. Sensor readings are simulated and are not real measurements.
-    </div>
-  </div>
-
   <!-- Loading and error message -->
   <div class="map-message" id="mapMessage" role="status">
     Loading map data...
@@ -76,9 +28,9 @@
   <script>
     "use strict";
 
-    // ==================================================
+    // ==========================================
     // 1. INITIALIZE MAP
-    // ==================================================
+    // ==========================================
 
     const map = L.map("map").setView([20, 0], 2);
 
@@ -93,16 +45,16 @@
       imperial: false
     }).addTo(map);
 
-    // One layer: each marker represents a soil sample
-    // and a simulated station at that coordinate.
+    // Keep all five sensor markers on one layer.
+    // No visible layer-switching control is added.
     const monitoringLayer = L.layerGroup().addTo(map);
 
     const mapMessage = document.getElementById("mapMessage");
     const sensorStations = [];
 
-    // ==================================================
+    // ==========================================
     // 2. HELPER FUNCTIONS
-    // ==================================================
+    // ==========================================
 
     function escapeHTML(value) {
       return String(value).replace(/[&<>"']/g, char => ({
@@ -122,18 +74,10 @@
       });
     }
 
-    // Marker colours match the soil-thickness legend.
-    function thicknessColor(value) {
-      if (value < 0.5) return "#23834b";
-      if (value < 1.0) return "#e6a23c";
-      if (value < 1.5) return "#e66b2e";
-      return "#c62828";
-    }
-
-    // ==================================================
+    // ==========================================
     // 3. SIMULATED SENSOR READINGS
-    // Demonstration values only; not real sensor data.
-    // ==================================================
+    // Demonstration values only.
+    // ==========================================
 
     function randomBetween(min, max, decimals = 1) {
       const value = min + Math.random() * (max - min);
@@ -150,21 +94,18 @@
       };
     }
 
-    // ==================================================
-    // 4. COLOURED MARKER ICON
-    // The colour comes from recorded soil thickness.
-    // S identifies a simulated sensor station.
-    // ==================================================
+    // ==========================================
+    // 4. UNIFORM SENSOR MARKER
+    // All markers use the same blue colour.
+    // Labels are A, B, C, D and E.
+    // ==========================================
 
-    function createSensorIcon(thickness) {
-      const color = thicknessColor(thickness);
-
+    function createSensorIcon(label) {
       return L.divIcon({
         className: "sensor-marker-wrapper",
         html: `
-          <div class="sensor-marker"
-               style="background-color:${color}">
-            S
+          <div class="sensor-marker">
+            ${escapeHTML(label)}
           </div>
         `,
         iconSize: [28, 28],
@@ -172,9 +113,9 @@
       });
     }
 
-    // ==================================================
-    // 5. POPUP CONTENT
-    // ==================================================
+    // ==========================================
+    // 5. SENSOR POPUP CONTENT
+    // ==========================================
 
     function sensorPopupHTML(station) {
       const r = station.readings;
@@ -247,13 +188,21 @@
       `;
     }
 
-    // ==================================================
-    // 6. CREATE ONE MARKER PER LOCATION
-    // ==================================================
+    // ==========================================
+    // 6. CREATE SENSOR STATION
+    // Sensor IDs are assigned by location order,
+    // not from CSV sample numbers.
+    // ==========================================
 
-    function addSensorStation(lat, lon, sampleNumber, thickness) {
+    function addSensorStation(lat, lon, thickness) {
+      // Assign the next letter based on valid locations.
+      const letter = String.fromCharCode(
+        65 + sensorStations.length
+      );
+
       const station = {
-        id: "SG-" + String(sampleNumber).padStart(2, "0"),
+        id: "Sensor Reading " + letter,
+        label: letter,
         lat: lat,
         lon: lon,
         recordedSoilThickness: thickness,
@@ -264,11 +213,9 @@
       };
 
       const marker = L.marker([lat, lon], {
-        icon: createSensorIcon(thickness),
+        icon: createSensorIcon(letter),
         keyboard: true,
-        title:
-          "Sample " + sampleNumber +
-          " · Soil thickness: " + thickness.toFixed(2) + " m"
+        title: station.id
       }).addTo(monitoringLayer);
 
       station.marker = marker;
@@ -290,9 +237,9 @@
       sensorStations.push(station);
     }
 
-    // ==================================================
-    // 7. LOAD SOIL-THICKNESS CSV
-    // ==================================================
+    // ==========================================
+    // 7. LOAD CSV AND SELECT FIVE LOCATIONS
+    // ==========================================
 
     fetch("./soil_thickness.csv")
       .then(response => {
@@ -312,28 +259,30 @@
           throw new Error("The CSV contains no data records.");
         }
 
-        const headers = rows[0].split(",").map(h => h.trim());
+        const headers = rows[0]
+          .split(",")
+          .map(header => header.trim());
 
         const latIndex = headers.indexOf("latitude_N");
         const lonIndex = headers.indexOf("longitude_E");
-        const sampleIndex = headers.indexOf("sample_number");
         const thicknessIndex = headers.indexOf("soil_thickness_m");
 
         if (
           latIndex === -1 ||
           lonIndex === -1 ||
-          sampleIndex === -1 ||
           thicknessIndex === -1
         ) {
-          throw new Error("Required CSV columns are missing.");
+          throw new Error(
+            "Required CSV columns are missing: latitude_N, longitude_E, soil_thickness_m."
+          );
         }
 
         const dataRows = rows
           .slice(1)
           .filter(row => row.trim() !== "");
 
-        // Show at most 15 evenly spaced samples.
-        const pointCount = Math.min(15, dataRows.length);
+        // Select at most five evenly spaced rows.
+        const pointCount = Math.min(5, dataRows.length);
         const selectedRows = [];
 
         for (let i = 0; i < pointCount; i++) {
@@ -351,13 +300,11 @@
         selectedRows.forEach(row => {
           const columns = row.split(",");
 
-          const sampleNumber = columns[sampleIndex]?.trim();
           const lat = Number(columns[latIndex]);
           const lon = Number(columns[lonIndex]);
           const thickness = Number(columns[thicknessIndex]);
 
           if (
-            !sampleNumber ||
             !Number.isFinite(lat) ||
             !Number.isFinite(lon) ||
             !Number.isFinite(thickness) ||
@@ -370,21 +317,21 @@
             return;
           }
 
-          // Marker colour is determined by the CSV thickness value.
-          addSensorStation(lat, lon, sampleNumber, thickness);
+          // The CSV determines location and thickness only.
+          // The marker label and popup ID are assigned A–E.
+          addSensorStation(lat, lon, thickness);
 
           mapBounds.push([lat, lon]);
         });
 
         if (mapBounds.length > 0) {
           map.fitBounds(mapBounds, {
-            paddingTopLeft: [25, 25],
-            paddingBottomRight: [25, 25],
+            padding: [30, 30],
             maxZoom: 13
           });
 
           mapMessage.textContent =
-            `Loaded ${mapBounds.length} soil samples and simulated stations.`;
+            `Loaded ${mapBounds.length} sensor locations.`;
 
           window.setTimeout(() => {
             mapMessage.classList.add("hidden");
@@ -392,24 +339,25 @@
 
         } else {
           mapMessage.textContent =
-            "No valid locations were found in the CSV.";
+            "No valid sensor locations were found in the CSV.";
         }
 
         console.log(
-          `Loaded ${mapBounds.length} soil samples and simulated stations.`
+          `Loaded ${sensorStations.length} sensor locations.`
         );
       })
 
       .catch(error => {
         console.error("Map data error:", error);
+
         mapMessage.textContent =
           "Could not load soil_thickness.csv. Check the browser console.";
       });
 
-    // ==================================================
-    // 8. UPDATE SIMULATED READINGS EVERY 3 SECONDS
-    // Recorded soil thickness and marker colour stay fixed.
-    // ==================================================
+    // ==========================================
+    // 8. UPDATE SIMULATED READINGS
+    // Every 3 minutes; locations and labels stay fixed.
+    // ==========================================
 
     window.setInterval(() => {
       sensorStations.forEach(station => {
@@ -417,27 +365,14 @@
         station.updatedAt = new Date();
 
         if (station.popupOpen) {
-          station.marker.setPopupContent(sensorPopupHTML(station));
+          station.marker.setPopupContent(
+            sensorPopupHTML(station)
+          );
         }
       });
     }, 180000);
 
-    // ==================================================
-    // 9. LAYER CONTROL
-    // ==================================================
-
-    L.control.layers(
-      null,
-      {
-        "Soil samples + simulated stations": monitoringLayer
-      },
-      {
-        collapsed: true
-      }
-    ).addTo(map);
-
   </script>
-  <script src="map.js">
-    </script>
 </body>
 </html>
+

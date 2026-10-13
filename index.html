@@ -237,6 +237,91 @@
       sensorStations.push(station);
     }
 
+    
+/**
+ * Highlight a sensor selected from the frontend search bar.
+ *
+ * Accepted inputs:
+ *   highlightSensor("A")
+ *   highlightSensor("Sensor Reading A")
+ *
+ * Behaviour:
+ *   - Zooms into the selected sensor
+ *   - Opens its popup
+ *   - Blinks and highlights the marker for 4 seconds
+ *   - Restores the original marker appearance
+ */
+window.highlightSensor = function (searchValue) {
+  if (!searchValue) {
+    console.warn("Please provide a sensor label or name.");
+    return false;
+  }
+
+  const query = String(searchValue).trim().toUpperCase();
+
+  // Match A, B, C, D, E or "Sensor Reading A", etc.
+  const station = sensorStations.find(sensor =>
+    sensor.label.toUpperCase() === query ||
+    sensor.id.toUpperCase() === query
+  );
+
+  if (!station) {
+    console.warn("Sensor not found:", searchValue);
+    return false;
+  }
+
+  // Cancel any previous highlight and restore its marker.
+  if (window._sensorHighlightTimer) {
+    clearTimeout(window._sensorHighlightTimer);
+    window._sensorHighlightTimer = null;
+  }
+
+  if (window._highlightedSensor) {
+    const previous = window._highlightedSensor;
+    const previousElement = previous.marker.getElement();
+    const previousMarker = previousElement?.querySelector(".sensor-marker");
+
+    if (previousMarker) {
+      previousMarker.classList.remove("sensor-highlight");
+    }
+  }
+
+  window._highlightedSensor = station;
+
+  // Zoom to the exact sensor location.
+  map.flyTo([station.lat, station.lon], 15, {
+    animate: true,
+    duration: 1.2
+  });
+
+  // Open the sensor popup.
+  station.marker.openPopup();
+
+  // Wait until Leaflet has rendered the marker after zooming.
+  window.setTimeout(() => {
+    const element = station.marker.getElement();
+    const marker = element?.querySelector(".sensor-marker");
+
+    if (!marker) {
+      console.warn("Could not find the sensor marker element.");
+      return;
+    }
+
+    marker.classList.add("sensor-highlight");
+
+    // Restore the original blue marker after 4 seconds.
+    window._sensorHighlightTimer = window.setTimeout(() => {
+      marker.classList.remove("sensor-highlight");
+      window._sensorHighlightTimer = null;
+      window._highlightedSensor = null;
+    }, 4000);
+
+  }, 1300);
+
+  return true;
+};
+
+
     // ==========================================
     // 7. LOAD CSV AND SELECT FIVE LOCATIONS
     // ==========================================
@@ -370,7 +455,7 @@
           );
         }
       });
-    }, 180000);
+    }, 5000);
 
   </script>
 </body>

@@ -1,463 +1,411 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SlopeGuard | Landslide Monitoring Map</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlopeGuard Monitoring Map</title>
 
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  >
-
-  <link rel="stylesheet" href="style.css">
+  />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 
 <body>
-  <!-- Full-screen map -->
   <div id="map"></div>
-
-  <!-- Loading and error message -->
-  <div class="map-message" id="mapMessage" role="status">
-    Loading map data...
-  </div>
+  <div id="mapMessage">Loading sensor locations...</div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    "use strict";
-
-    // ==========================================
-    // 1. INITIALIZE MAP
-    // ==========================================
+    // --------------------------------------------------
+    // 1. INITIALISE THE MAP
+    // --------------------------------------------------
 
     const map = L.map("map").setView([20, 0], 2);
 
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19
     }).addTo(map);
 
-    L.control.scale({
-      metric: true,
-      imperial: false
-    }).addTo(map);
+    L.control.scale({ imperial: false }).addTo(map);
 
-    // Keep all five sensor markers on one layer.
-    // No visible layer-switching control is added.
     const monitoringLayer = L.layerGroup().addTo(map);
-
-    const mapMessage = document.getElementById("mapMessage");
     const sensorStations = [];
 
-    // ==========================================
+    const mapMessage = document.getElementById("mapMessage");
+
+    // --------------------------------------------------
     // 2. HELPER FUNCTIONS
-    // ==========================================
+    // --------------------------------------------------
 
     function escapeHTML(value) {
-      return String(value).replace(/[&<>"']/g, char => ({
+      return String(value).replace(/[&<>"']/g, character => ({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
         "'": "&#39;"
-      })[char]);
+      })[character]);
     }
 
-    function formatTime(date) {
-      return date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
+    function formatTime(date = new Date()) {
+      return date.toLocaleTimeString("en-GB", {
+        hour12: false
       });
     }
 
-    // ==========================================
-    // 3. SIMULATED SENSOR READINGS
-    // Demonstration values only.
-    // ==========================================
-
-    function randomBetween(min, max, decimals = 1) {
-      const value = min + Math.random() * (max - min);
+    function randomNumber(min, max, decimals = 1) {
+      const value = Math.random() * (max - min) + min;
       return Number(value.toFixed(decimals));
     }
 
+    // --------------------------------------------------
+    // 3. SIMULATED SENSOR READINGS
+    // --------------------------------------------------
+
     function generateSensorReadings() {
       return {
-        rainfall: randomBetween(0, 60, 1),
-        soilMoisture: randomBetween(20, 90, 1),
-        tilt: randomBetween(0, 0.5, 3),
-        soilThicknessEstimate: randomBetween(0.2, 2.5, 2),
-        waterIndex: randomBetween(0, 100, 1)
+        rainfall: randomNumber(0, 30, 1),
+        soilMoisture: randomNumber(25, 90, 1),
+        tilt: randomNumber(0, 8, 2),
+        acousticEstimate: randomNumber(0.5, 3.0, 2),
+        waterIndex: randomNumber(0, 100, 1)
       };
     }
 
-    // ==========================================
-    // 4. UNIFORM SENSOR MARKER
-    // All markers use the same blue colour.
-    // Labels are A, B, C, D and E.
-    // ==========================================
+    // --------------------------------------------------
+    // 4. CREATE UNIFORM SENSOR MARKERS
+    // --------------------------------------------------
 
     function createSensorIcon(label) {
       return L.divIcon({
-        className: "sensor-marker-wrapper",
+        className: "sensor-icon-container",
         html: `
           <div class="sensor-marker">
             ${escapeHTML(label)}
           </div>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+        popupAnchor: [0, -18]
       });
     }
 
-    // ==========================================
-    // 5. SENSOR POPUP CONTENT
-    // ==========================================
+    // --------------------------------------------------
+    // 5. SENSOR POPUP
+    // Recorded soil thickness is intentionally excluded.
+    // --------------------------------------------------
 
-    function sensorPopupHTML(station) {
-      const r = station.readings;
+    function createPopupContent(station) {
+      const readings = station.readings;
 
       return `
         <div class="sensor-popup">
-
           <div class="popup-heading">
+            <span class="popup-status-dot"></span>
             <strong>${escapeHTML(station.id)}</strong>
-            <span class="simulated-badge">SIMULATED</span>
           </div>
 
           <div class="popup-subtitle">
-            Monitoring station · Demo readings
+            Simulated landslide-monitoring readings
           </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">🌧️</span>
-            <span class="reading-name">Rainfall rate</span>
-            <strong>${r.rainfall} mm/h</strong>
+          <div class="reading-row">
+            <span>Rainfall</span>
+            <strong>${readings.rainfall} mm/h</strong>
           </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">💧</span>
-            <span class="reading-name">Soil moisture</span>
-            <strong>${r.soilMoisture}%</strong>
+          <div class="reading-row">
+            <span>Soil moisture</span>
+            <strong>${readings.soilMoisture}%</strong>
           </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">📐</span>
-            <span class="reading-name">Tilt change</span>
-            <strong>${r.tilt.toFixed(3)}°</strong>
+          <div class="reading-row">
+            <span>Tilt</span>
+            <strong>${readings.tilt}°</strong>
           </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">〰️</span>
-            <span class="reading-name">Acoustic thickness estimate</span>
-            <strong>${r.soilThicknessEstimate.toFixed(2)} m</strong>
+          <div class="reading-row">
+            <span>Acoustic estimate</span>
+            <strong>${readings.acousticEstimate}</strong>
           </div>
 
-          <div class="popup-reading">
-            <span class="reading-icon">🌊</span>
-            <span class="reading-name">Water index</span>
-            <strong>${r.waterIndex}%</strong>
+          <div class="reading-row">
+            <span>Water index</span>
+            <strong>${readings.waterIndex}%</strong>
           </div>
 
-          <div class="popup-reading soil-record">
-            <span class="reading-icon">🌱</span>
-            <span class="reading-name">Recorded soil thickness</span>
-            <strong>${station.recordedSoilThickness.toFixed(2)} m</strong>
+          <div class="update-status">
+            <span class="update-dot"></span>
+            Random demo readings · Updates every 5 seconds
           </div>
 
-          <div class="popup-footer">
-            <span class="live-dot"></span>
-            Random demo readings · Updates every 3 minutes
-          </div>
-
-          <div class="popup-updated">
-            Last updated: ${formatTime(station.updatedAt)}
+          <div class="last-updated">
+            Last updated: ${station.lastUpdated}
           </div>
 
           <div class="popup-disclaimer">
-            Sensor values are simulated. Recorded soil thickness comes
-            from the CSV and does not change automatically. The acoustic
-            estimate and water index are placeholders, not validated
-            measurements.
+            Sensor values are simulated for demonstration.
+            The acoustic estimate and water index are placeholders,
+            not validated measurements.
           </div>
-
         </div>
       `;
     }
 
-    // ==========================================
-    // 6. CREATE SENSOR STATION
-    // Sensor IDs are assigned by location order,
-    // not from CSV sample numbers.
-    // ==========================================
+    // --------------------------------------------------
+    // 6. ADD A SENSOR STATION
+    // --------------------------------------------------
 
-    function addSensorStation(lat, lon, thickness) {
-      // Assign the next letter based on valid locations.
-      const letter = String.fromCharCode(
-        65 + sensorStations.length
-      );
+    function addSensorStation(lat, lon) {
+      const letter = String.fromCharCode(65 + sensorStations.length);
 
       const station = {
-        id: "Sensor Reading " + letter,
+        id: `Sensor Reading ${letter}`,
         label: letter,
-        lat: lat,
-        lon: lon,
-        recordedSoilThickness: thickness,
+        lat,
+        lon,
         readings: generateSensorReadings(),
-        updatedAt: new Date(),
-        marker: null,
-        popupOpen: false
+        lastUpdated: formatTime(),
+        marker: null
       };
 
       const marker = L.marker([lat, lon], {
         icon: createSensorIcon(letter),
         keyboard: true,
         title: station.id
-      }).addTo(monitoringLayer);
+      });
 
       station.marker = marker;
 
-      marker.bindPopup(sensorPopupHTML(station), {
-        maxWidth: 320,
-        minWidth: 250,
-        autoPan: true
+      marker.bindPopup(() => createPopupContent(station), {
+        maxWidth: 340,
+        minWidth: 270
       });
 
-      marker.on("popupopen", () => {
-        station.popupOpen = true;
-      });
-
-      marker.on("popupclose", () => {
-        station.popupOpen = false;
-      });
-
+      marker.addTo(monitoringLayer);
       sensorStations.push(station);
+
+      return station;
     }
 
-    
-/**
- * Highlight a sensor selected from the frontend search bar.
- *
- * Accepted inputs:
- *   highlightSensor("A")
- *   highlightSensor("Sensor Reading A")
- *
- * Behaviour:
- *   - Zooms into the selected sensor
- *   - Opens its popup
- *   - Blinks and highlights the marker for 4 seconds
- *   - Restores the original marker appearance
- */
-window.highlightSensor = function (searchValue) {
-  if (!searchValue) {
-    console.warn("Please provide a sensor label or name.");
-    return false;
-  }
+    // --------------------------------------------------
+    // 7. SEARCH-HIGHLIGHT FUNCTION FOR THE FRONTEND
+    //
+    // Usage:
+    // highlightSensor("C")
+    // highlightSensor("Sensor Reading C")
+    // --------------------------------------------------
 
-  const query = String(searchValue).trim().toUpperCase();
+    let highlightStartTimer = null;
+    let highlightEndTimer = null;
+    let highlightedStation = null;
 
-  // Match A, B, C, D, E or "Sensor Reading A", etc.
-  const station = sensorStations.find(sensor =>
-    sensor.label.toUpperCase() === query ||
-    sensor.id.toUpperCase() === query
-  );
+    function clearSensorHighlight() {
+      if (highlightStartTimer !== null) {
+        clearTimeout(highlightStartTimer);
+        highlightStartTimer = null;
+      }
 
-  if (!station) {
-    console.warn("Sensor not found:", searchValue);
-    return false;
-  }
+      if (highlightEndTimer !== null) {
+        clearTimeout(highlightEndTimer);
+        highlightEndTimer = null;
+      }
 
-  // Cancel any previous highlight and restore its marker.
-  if (window._sensorHighlightTimer) {
-    clearTimeout(window._sensorHighlightTimer);
-    window._sensorHighlightTimer = null;
-  }
+      if (highlightedStation) {
+        const element = highlightedStation.marker.getElement();
+        const marker = element?.querySelector(".sensor-marker");
 
-  if (window._highlightedSensor) {
-    const previous = window._highlightedSensor;
-    const previousElement = previous.marker.getElement();
-    const previousMarker = previousElement?.querySelector(".sensor-marker");
+        if (marker) {
+          marker.classList.remove("sensor-highlight");
+        }
+      }
 
-    if (previousMarker) {
-      previousMarker.classList.remove("sensor-highlight");
-    }
-  }
-
-  window._highlightedSensor = station;
-
-  // Zoom to the exact sensor location.
-  map.flyTo([station.lat, station.lon], 15, {
-    animate: true,
-    duration: 1.2
-  });
-
-  // Open the sensor popup.
-  station.marker.openPopup();
-
-  // Wait until Leaflet has rendered the marker after zooming.
-  window.setTimeout(() => {
-    const element = station.marker.getElement();
-    const marker = element?.querySelector(".sensor-marker");
-
-    if (!marker) {
-      console.warn("Could not find the sensor marker element.");
-      return;
+      highlightedStation = null;
     }
 
-    marker.classList.add("sensor-highlight");
+    window.highlightSensor = function(searchValue) {
+      if (!searchValue || !String(searchValue).trim()) {
+        console.warn("Enter a sensor label or name.");
+        return false;
+      }
 
-    // Restore the original blue marker after 4 seconds.
-    window._sensorHighlightTimer = window.setTimeout(() => {
-      marker.classList.remove("sensor-highlight");
-      window._sensorHighlightTimer = null;
-      window._highlightedSensor = null;
-    }, 4000);
+      const query = String(searchValue).trim().toUpperCase();
 
-  }, 1300);
+      const station = sensorStations.find(sensor =>
+        sensor.label.toUpperCase() === query ||
+        sensor.id.toUpperCase() === query
+      );
 
-  return true;
-};
+      if (!station) {
+        console.warn("Sensor not found:", searchValue);
+        return false;
+      }
 
+      clearSensorHighlight();
+      highlightedStation = station;
 
-    // ==========================================
-    // 7. LOAD CSV AND SELECT FIVE LOCATIONS
-    // ==========================================
+      map.flyTo([station.lat, station.lon], 15, {
+        animate: true,
+        duration: 1.2
+      });
 
-    fetch("./soil_thickness.csv")
-      .then(response => {
+      station.marker.openPopup();
+
+      highlightStartTimer = setTimeout(() => {
+        highlightStartTimer = null;
+
+        const element = station.marker.getElement();
+        const marker = element?.querySelector(".sensor-marker");
+
+        if (!marker) {
+          return;
+        }
+
+        marker.classList.add("sensor-highlight");
+
+        highlightEndTimer = setTimeout(() => {
+          marker.classList.remove("sensor-highlight");
+          highlightEndTimer = null;
+          highlightedStation = null;
+        }, 4000);
+
+      }, 1300);
+
+      return true;
+    };
+
+    // --------------------------------------------------
+    // 8. LOAD SENSOR LOCATIONS FROM CSV
+    // Expected column names:
+    // latitude_N, longitude_E
+    //
+    // Other CSV columns are ignored.
+    // --------------------------------------------------
+
+    function parseCSVLine(line) {
+      return line.split(",").map(value =>
+        value.trim().replace(/^"|"$/g, "")
+      );
+    }
+
+    async function loadSensorStations() {
+      try {
+        const response = await fetch("./soil_thickness.csv");
+
         if (!response.ok) {
           throw new Error(
-            "Could not load soil_thickness.csv. Check the file location."
+            `Could not load CSV (HTTP ${response.status}).`
           );
         }
 
-        return response.text();
-      })
+        const csvText = await response.text();
+        const lines = csvText.trim().split(/\r?\n/);
 
-      .then(csv => {
-        const rows = csv.trim().split(/\r?\n/);
-
-        if (rows.length < 2) {
-          throw new Error("The CSV contains no data records.");
+        if (lines.length < 2) {
+          throw new Error("The CSV has no sensor location rows.");
         }
 
-        const headers = rows[0]
-          .split(",")
-          .map(header => header.trim());
+        const headers = parseCSVLine(lines[0]);
 
         const latIndex = headers.indexOf("latitude_N");
         const lonIndex = headers.indexOf("longitude_E");
-        const thicknessIndex = headers.indexOf("soil_thickness_m");
 
-        if (
-          latIndex === -1 ||
-          lonIndex === -1 ||
-          thicknessIndex === -1
-        ) {
+        if (latIndex === -1 || lonIndex === -1) {
           throw new Error(
-            "Required CSV columns are missing: latitude_N, longitude_E, soil_thickness_m."
+            "CSV must contain latitude_N and longitude_E columns."
           );
         }
 
-        const dataRows = rows
-          .slice(1)
-          .filter(row => row.trim() !== "");
+        const rows = lines.slice(1)
+          .filter(line => line.trim() !== "")
+          .map(parseCSVLine)
+          .map(row => ({
+            lat: Number(row[latIndex]),
+            lon: Number(row[lonIndex])
+          }))
+          .filter(point =>
+            Number.isFinite(point.lat) &&
+            Number.isFinite(point.lon) &&
+            point.lat >= -90 &&
+            point.lat <= 90 &&
+            point.lon >= -180 &&
+            point.lon <= 180
+          );
 
-        // Select at most five evenly spaced rows.
-        const pointCount = Math.min(5, dataRows.length);
+        if (rows.length === 0) {
+          throw new Error("No valid sensor coordinates found in CSV.");
+        }
+
+        // Select up to 5 evenly spaced locations from the CSV.
+        const count = Math.min(5, rows.length);
         const selectedRows = [];
 
-        for (let i = 0; i < pointCount; i++) {
-          const index = pointCount === 1
+        for (let i = 0; i < count; i++) {
+          const index = count === 1
             ? 0
-            : Math.round(
-                i * (dataRows.length - 1) / (pointCount - 1)
-              );
+            : Math.round(i * (rows.length - 1) / (count - 1));
 
-          selectedRows.push(dataRows[index]);
+          selectedRows.push(rows[index]);
         }
 
-        const mapBounds = [];
-
-        selectedRows.forEach(row => {
-          const columns = row.split(",");
-
-          const lat = Number(columns[latIndex]);
-          const lon = Number(columns[lonIndex]);
-          const thickness = Number(columns[thicknessIndex]);
-
-          if (
-            !Number.isFinite(lat) ||
-            !Number.isFinite(lon) ||
-            !Number.isFinite(thickness) ||
-            lat < -90 ||
-            lat > 90 ||
-            lon < -180 ||
-            lon > 180 ||
-            thickness < 0
-          ) {
-            return;
-          }
-
-          // The CSV determines location and thickness only.
-          // The marker label and popup ID are assigned A–E.
-          addSensorStation(lat, lon, thickness);
-
-          mapBounds.push([lat, lon]);
+        selectedRows.forEach(point => {
+          addSensorStation(point.lat, point.lon);
         });
 
-        if (mapBounds.length > 0) {
-          map.fitBounds(mapBounds, {
-            padding: [30, 30],
-            maxZoom: 13
-          });
+        const bounds = L.latLngBounds(
+          sensorStations.map(station => [station.lat, station.lon])
+        );
 
-          mapMessage.textContent =
-            `Loaded ${mapBounds.length} sensor locations.`;
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [50, 50] });
 
-          window.setTimeout(() => {
-            mapMessage.classList.add("hidden");
-          }, 3000);
-
-        } else {
-          mapMessage.textContent =
-            "No valid sensor locations were found in the CSV.";
+          if (sensorStations.length === 1) {
+            map.setZoom(12);
+          }
         }
 
-        console.log(
-          `Loaded ${sensorStations.length} sensor locations.`
-        );
-      })
+        mapMessage.style.display = "none";
 
-      .catch(error => {
-        console.error("Map data error:", error);
+        console.log(
+          `${sensorStations.length} sensor stations loaded.`
+        );
+
+      } catch (error) {
+        console.error("Sensor loading error:", error);
 
         mapMessage.textContent =
-          "Could not load soil_thickness.csv. Check the browser console.";
-      });
+          "Could not load sensor locations. Check soil_thickness.csv and run the project using a local web server.";
 
-    // ==========================================
-    // 8. UPDATE SIMULATED READINGS
-    // Every 3 minutes; locations and labels stay fixed.
-    // ==========================================
+        mapMessage.classList.add("map-message-error");
+      }
+    }
 
-    window.setInterval(() => {
+    // --------------------------------------------------
+    // 9. UPDATE READINGS EVERY 5 SECONDS
+    // --------------------------------------------------
+
+    setInterval(() => {
       sensorStations.forEach(station => {
         station.readings = generateSensorReadings();
-        station.updatedAt = new Date();
+        station.lastUpdated = formatTime();
 
-        if (station.popupOpen) {
+        // Refresh the popup if it is currently open.
+        if (station.marker.isPopupOpen()) {
           station.marker.setPopupContent(
-            sensorPopupHTML(station)
+            createPopupContent(station)
           );
         }
       });
     }, 5000);
 
+    // Start loading the CSV.
+    loadSensorStations();
   </script>
 </body>
 </html>
-
+```

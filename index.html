@@ -1,411 +1,134 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SlopeGuard Monitoring Map</title>
-
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <link rel="stylesheet" href="./style.css" />
+  <title>SignalWatch | Disaster Information Monitor</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <div id="map"></div>
-  <div id="mapMessage">Loading sensor locations...</div>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div><strong>SignalWatch</strong><small>INFORMATION MONITOR</small></div>
+    </div>
+    <div class="nav-label">WORKSPACE</div>
+    <nav>
+      <a class="nav-item active" href="#"><span>◫</span> Overview</a>
+      <a class="nav-item" href="#reports"><span>▤</span> Reports</a>
+      <a class="nav-item" href="#conflicts"><span>⚡</span> Conflicts <b class="nav-count">3</b></a>
+      <a class="nav-item" href="#sources"><span>◎</span> Sources</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="status-dot"></div>
+      <div><strong>Demo environment</strong><small>Synthetic sample data</small></div>
+    </div>
+  </aside>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">DISASTER RESPONSE / OVERVIEW</div>
+        <h1>Disaster Information Monitor</h1>
+        <p class="subtitle">Assess freshness, surface conflicts, understand uncertainty.</p>
+      </div>
+      <div class="top-actions">
+        <div class="updated"><span class="live-dot"></span><span>Last updated <strong id="updatedAt">10:42 AM</strong></span></div>
+        <button id="refreshBtn" class="refresh-btn"><span>↻</span> Refresh demo</button>
+      </div>
+    </header>
 
-  <script>
-    // --------------------------------------------------
-    // 1. INITIALISE THE MAP
-    // --------------------------------------------------
+    <section class="metrics" aria-label="Summary metrics">
+      <article class="metric-card">
+        <div class="metric-top"><span>Active reports</span><span class="metric-icon blue">▤</span></div>
+        <div class="metric-value" id="activeCount">10</div><div class="metric-foot">Across monitored locations</div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-top"><span>Conflicts detected</span><span class="metric-icon amber">⚡</span></div>
+        <div class="metric-value" id="conflictCount">3</div><div class="metric-foot"><span class="dot amber-bg"></span> Require review</div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-top"><span>Stale reports</span><span class="metric-icon red">◷</span></div>
+        <div class="metric-value" id="staleCount">2</div><div class="metric-foot"><span class="dot red-bg"></span> Re-check before relying</div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-top"><span>Unverified reports</span><span class="metric-icon purple">?</span></div>
+        <div class="metric-value" id="unverifiedCount">2</div><div class="metric-foot">Source confirmation needed</div>
+      </article>
+    </section>
 
-    const map = L.map("map").setView([20, 0], 2);
+    <section class="overview-heading">
+      <div><h2>Situational overview</h2><p>Information state by location</p></div>
+      <div class="legend">
+        <span><i class="legend-dot fresh"></i>Fresh</span>
+        <span><i class="legend-dot aging"></i>Aging</span>
+        <span><i class="legend-dot stale"></i>Stale</span>
+        <span><i class="legend-dot uncertain"></i>Uncertain</span>
+      </div>
+    </section>
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 19
-    }).addTo(map);
+    <!-- MAP INTEGRATION SLOT: replace this section with your Leaflet / React Leaflet map component -->
+    <section class="map-placeholder" aria-label="Map placeholder">
+      <div class="map-grid"></div>
+      <div class="map-water water-one"></div><div class="map-water water-two"></div>
+      <div class="map-road road-one"></div><div class="map-road road-two"></div><div class="map-road road-three"></div>
+      <div class="map-marker marker-one"><span></span><label>NH-66 Coastal Road</label></div>
+      <div class="map-marker marker-two"><span></span><label>Community Hall</label></div>
+      <div class="map-marker marker-three"><span></span><label>Agumbe Ghat</label></div>
+      <div class="map-marker marker-four"><span></span><label>Manipal Main Road</label></div>
+      <div class="map-center">
+        <div class="map-icon">⌖</div>
+        <h3>MAP COMPONENT GOES HERE</h3>
+        <p>Large map area · replace with Leaflet / React Leaflet</p>
+        <span class="map-size-note">Map canvas reserved: full width · 480px tall</span>
+      </div>
+      <div class="map-controls"><button title="Zoom in">+</button><button title="Zoom out">−</button><button title="Locate">⌖</button></div>
+      <div class="map-attribution">Map placeholder · not live geographic data</div>
+    </section>
 
-    L.control.scale({ imperial: false }).addTo(map);
+    <section class="lower-grid">
+      <article class="panel reports-panel" id="reports">
+        <div class="panel-heading"><div><h2>Recent reports</h2><p>Latest information received</p></div><a href="#reports" class="text-link">View all →</a></div>
+        <div class="filters">
+          <input type="search" id="searchInput" placeholder="Search location or report..." aria-label="Search reports" />
+          <select id="statusFilter" aria-label="Filter by freshness">
+            <option value="all">All statuses</option><option value="fresh">Fresh</option><option value="aging">Aging</option><option value="stale">Stale</option><option value="uncertain">Uncertain</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>LOCATION / INFORMATION</th><th>FRESHNESS</th><th>OBSERVED</th></tr></thead>
+            <tbody id="reportRows"></tbody>
+          </table>
+        </div>
+        <div class="panel-foot" id="reportFoot">Showing 5 sample reports</div>
+      </article>
 
-    const monitoringLayer = L.layerGroup().addTo(map);
-    const sensorStations = [];
-
-    const mapMessage = document.getElementById("mapMessage");
-
-    // --------------------------------------------------
-    // 2. HELPER FUNCTIONS
-    // --------------------------------------------------
-
-    function escapeHTML(value) {
-      return String(value).replace(/[&<>"']/g, character => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      })[character]);
-    }
-
-    function formatTime(date = new Date()) {
-      return date.toLocaleTimeString("en-GB", {
-        hour12: false
-      });
-    }
-
-    function randomNumber(min, max, decimals = 1) {
-      const value = Math.random() * (max - min) + min;
-      return Number(value.toFixed(decimals));
-    }
-
-    // --------------------------------------------------
-    // 3. SIMULATED SENSOR READINGS
-    // --------------------------------------------------
-
-    function generateSensorReadings() {
-      return {
-        rainfall: randomNumber(0, 30, 1),
-        soilMoisture: randomNumber(25, 90, 1),
-        tilt: randomNumber(0, 8, 2),
-        acousticEstimate: randomNumber(0.5, 3.0, 2),
-        waterIndex: randomNumber(0, 100, 1)
-      };
-    }
-
-    // --------------------------------------------------
-    // 4. CREATE UNIFORM SENSOR MARKERS
-    // --------------------------------------------------
-
-    function createSensorIcon(label) {
-      return L.divIcon({
-        className: "sensor-icon-container",
-        html: `
-          <div class="sensor-marker">
-            ${escapeHTML(label)}
+      <article class="panel conflicts-panel" id="conflicts">
+        <div class="panel-heading"><div><h2>Conflicting information</h2><p>Reports that disagree or need confirmation</p></div><span class="count-badge">3 open</span></div>
+        <div class="conflict-list">
+          <div class="conflict-item">
+            <div class="conflict-symbol">!</div>
+            <div class="conflict-content"><strong>NH-66 Coastal Road</strong><p><span class="claim-open">Road open</span><span class="versus">vs</span><span class="claim-danger">Road flooded</span></p><small>2 reports disagree · verify current conditions</small></div>
+            <span class="chevron">›</span>
           </div>
-        `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-        popupAnchor: [0, -18]
-      });
-    }
-
-    // --------------------------------------------------
-    // 5. SENSOR POPUP
-    // Recorded soil thickness is intentionally excluded.
-    // --------------------------------------------------
-
-    function createPopupContent(station) {
-      const readings = station.readings;
-
-      return `
-        <div class="sensor-popup">
-          <div class="popup-heading">
-            <span class="popup-status-dot"></span>
-            <strong>${escapeHTML(station.id)}</strong>
+          <div class="conflict-item">
+            <div class="conflict-symbol">!</div>
+            <div class="conflict-content"><strong>Community Hall Shelter</strong><p><span class="claim-open">Available</span><span class="versus">vs</span><span class="claim-warn">Near capacity</span></p><small>Capacity status is inconsistent</small></div>
+            <span class="chevron">›</span>
           </div>
-
-          <div class="popup-subtitle">
-            Simulated landslide-monitoring readings
-          </div>
-
-          <div class="reading-row">
-            <span>Rainfall</span>
-            <strong>${readings.rainfall} mm/h</strong>
-          </div>
-
-          <div class="reading-row">
-            <span>Soil moisture</span>
-            <strong>${readings.soilMoisture}%</strong>
-          </div>
-
-          <div class="reading-row">
-            <span>Tilt</span>
-            <strong>${readings.tilt}°</strong>
-          </div>
-
-          <div class="reading-row">
-            <span>Acoustic estimate</span>
-            <strong>${readings.acousticEstimate}</strong>
-          </div>
-
-          <div class="reading-row">
-            <span>Water index</span>
-            <strong>${readings.waterIndex}%</strong>
-          </div>
-
-          <div class="update-status">
-            <span class="update-dot"></span>
-            Random demo readings · Updates every 5 seconds
-          </div>
-
-          <div class="last-updated">
-            Last updated: ${station.lastUpdated}
-          </div>
-
-          <div class="popup-disclaimer">
-            Sensor values are simulated for demonstration.
-            The acoustic estimate and water index are placeholders,
-            not validated measurements.
+          <div class="conflict-item">
+            <div class="conflict-symbol purple-symbol">?</div>
+            <div class="conflict-content"><strong>Agumbe Ghat Approach</strong><p><span class="claim-warn">Possible debris</span></p><small>Unverified observation · seek another source</small></div>
+            <span class="chevron">›</span>
           </div>
         </div>
-      `;
-    }
+        <div class="uncertainty-note"><span>ⓘ</span><div><strong>When sources disagree, show uncertainty.</strong><p>Do not silently choose one report. Display both claims, timestamps and source quality.</p></div></div>
+      </article>
+    </section>
 
-    // --------------------------------------------------
-    // 6. ADD A SENSOR STATION
-    // --------------------------------------------------
-
-    function addSensorStation(lat, lon) {
-      const letter = String.fromCharCode(65 + sensorStations.length);
-
-      const station = {
-        id: `Sensor Reading ${letter}`,
-        label: letter,
-        lat,
-        lon,
-        readings: generateSensorReadings(),
-        lastUpdated: formatTime(),
-        marker: null
-      };
-
-      const marker = L.marker([lat, lon], {
-        icon: createSensorIcon(letter),
-        keyboard: true,
-        title: station.id
-      });
-
-      station.marker = marker;
-
-      marker.bindPopup(() => createPopupContent(station), {
-        maxWidth: 340,
-        minWidth: 270
-      });
-
-      marker.addTo(monitoringLayer);
-      sensorStations.push(station);
-
-      return station;
-    }
-
-    // --------------------------------------------------
-    // 7. SEARCH-HIGHLIGHT FUNCTION FOR THE FRONTEND
-    //
-    // Usage:
-    // highlightSensor("C")
-    // highlightSensor("Sensor Reading C")
-    // --------------------------------------------------
-
-    let highlightStartTimer = null;
-    let highlightEndTimer = null;
-    let highlightedStation = null;
-
-    function clearSensorHighlight() {
-      if (highlightStartTimer !== null) {
-        clearTimeout(highlightStartTimer);
-        highlightStartTimer = null;
-      }
-
-      if (highlightEndTimer !== null) {
-        clearTimeout(highlightEndTimer);
-        highlightEndTimer = null;
-      }
-
-      if (highlightedStation) {
-        const element = highlightedStation.marker.getElement();
-        const marker = element?.querySelector(".sensor-marker");
-
-        if (marker) {
-          marker.classList.remove("sensor-highlight");
-        }
-      }
-
-      highlightedStation = null;
-    }
-
-    window.highlightSensor = function(searchValue) {
-      if (!searchValue || !String(searchValue).trim()) {
-        console.warn("Enter a sensor label or name.");
-        return false;
-      }
-
-      const query = String(searchValue).trim().toUpperCase();
-
-      const station = sensorStations.find(sensor =>
-        sensor.label.toUpperCase() === query ||
-        sensor.id.toUpperCase() === query
-      );
-
-      if (!station) {
-        console.warn("Sensor not found:", searchValue);
-        return false;
-      }
-
-      clearSensorHighlight();
-      highlightedStation = station;
-
-      map.flyTo([station.lat, station.lon], 15, {
-        animate: true,
-        duration: 1.2
-      });
-
-      station.marker.openPopup();
-
-      highlightStartTimer = setTimeout(() => {
-        highlightStartTimer = null;
-
-        const element = station.marker.getElement();
-        const marker = element?.querySelector(".sensor-marker");
-
-        if (!marker) {
-          return;
-        }
-
-        marker.classList.add("sensor-highlight");
-
-        highlightEndTimer = setTimeout(() => {
-          marker.classList.remove("sensor-highlight");
-          highlightEndTimer = null;
-          highlightedStation = null;
-        }, 4000);
-
-      }, 1300);
-
-      return true;
-    };
-
-    // --------------------------------------------------
-    // 8. LOAD SENSOR LOCATIONS FROM CSV
-    // Expected column names:
-    // latitude_N, longitude_E
-    //
-    // Other CSV columns are ignored.
-    // --------------------------------------------------
-
-    function parseCSVLine(line) {
-      return line.split(",").map(value =>
-        value.trim().replace(/^"|"$/g, "")
-      );
-    }
-
-    async function loadSensorStations() {
-      try {
-        const response = await fetch("./soil_thickness.csv");
-
-        if (!response.ok) {
-          throw new Error(
-            `Could not load CSV (HTTP ${response.status}).`
-          );
-        }
-
-        const csvText = await response.text();
-        const lines = csvText.trim().split(/\r?\n/);
-
-        if (lines.length < 2) {
-          throw new Error("The CSV has no sensor location rows.");
-        }
-
-        const headers = parseCSVLine(lines[0]);
-
-        const latIndex = headers.indexOf("latitude_N");
-        const lonIndex = headers.indexOf("longitude_E");
-
-        if (latIndex === -1 || lonIndex === -1) {
-          throw new Error(
-            "CSV must contain latitude_N and longitude_E columns."
-          );
-        }
-
-        const rows = lines.slice(1)
-          .filter(line => line.trim() !== "")
-          .map(parseCSVLine)
-          .map(row => ({
-            lat: Number(row[latIndex]),
-            lon: Number(row[lonIndex])
-          }))
-          .filter(point =>
-            Number.isFinite(point.lat) &&
-            Number.isFinite(point.lon) &&
-            point.lat >= -90 &&
-            point.lat <= 90 &&
-            point.lon >= -180 &&
-            point.lon <= 180
-          );
-
-        if (rows.length === 0) {
-          throw new Error("No valid sensor coordinates found in CSV.");
-        }
-
-        // Select up to 5 evenly spaced locations from the CSV.
-        const count = Math.min(5, rows.length);
-        const selectedRows = [];
-
-        for (let i = 0; i < count; i++) {
-          const index = count === 1
-            ? 0
-            : Math.round(i * (rows.length - 1) / (count - 1));
-
-          selectedRows.push(rows[index]);
-        }
-
-        selectedRows.forEach(point => {
-          addSensorStation(point.lat, point.lon);
-        });
-
-        const bounds = L.latLngBounds(
-          sensorStations.map(station => [station.lat, station.lon])
-        );
-
-        if (bounds.isValid()) {
-          map.fitBounds(bounds, { padding: [50, 50] });
-
-          if (sensorStations.length === 1) {
-            map.setZoom(12);
-          }
-        }
-
-        mapMessage.style.display = "none";
-
-        console.log(
-          `${sensorStations.length} sensor stations loaded.`
-        );
-
-      } catch (error) {
-        console.error("Sensor loading error:", error);
-
-        mapMessage.textContent =
-          "Could not load sensor locations. Check soil_thickness.csv and run the project using a local web server.";
-
-        mapMessage.classList.add("map-message-error");
-      }
-    }
-
-    // --------------------------------------------------
-    // 9. UPDATE READINGS EVERY 5 SECONDS
-    // --------------------------------------------------
-
-    setInterval(() => {
-      sensorStations.forEach(station => {
-        station.readings = generateSensorReadings();
-        station.lastUpdated = formatTime();
-
-        // Refresh the popup if it is currently open.
-        if (station.marker.isPopupOpen()) {
-          station.marker.setPopupContent(
-            createPopupContent(station)
-          );
-        }
-      });
-    }, 5000);
-
-    // Start loading the CSV.
-    loadSensorStations();
-  </script>
+    <footer id="sources"><span>SignalWatch demo UI</span><span>Sample data only · Not for real emergency decisions</span></footer>
+  </main>
+  <script src="app.js"></script>
 </body>
 </html>
-```
